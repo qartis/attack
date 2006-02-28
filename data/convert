@@ -1,0 +1,2 @@
+#!/bin/sh
+for file in `ls *png*`; do convert $file `basename $file .png`.gif; done
