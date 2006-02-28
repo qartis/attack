@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include <string.h> //for memcpy
 
 #include "SDL.h"
 #include "SFont.h"
