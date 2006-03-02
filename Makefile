@@ -1,5 +1,5 @@
 CFLAGS = -c -I/usr/include/SDL -g -fPIC
-LFLAGS = -lSDL -lSDL_mixer -lSDL_image
+LFLAGS = -lSDL -lSDL_mixer -lSDL_image -lcurl
 COMPILE = gcc -Wall
 
 all: attack

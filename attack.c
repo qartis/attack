@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <curl/curl.h>
 
 #include "SDL.h"
 #include "SFont.h"
@@ -16,6 +17,12 @@
 #endif
 #define DATAFILE(X)	DIR_CUR "data" DIR_SEP X
 
+#define LIVES		3
+#define LIVES_OFFSET	50
+#define LIVES_SPACING   10
+#define LIVES_HEIGHT    0
+#define PLAYER_HEIGHT   40
+#define CASTLE_HEIGHT   50
 #define	FRAMES_PER_SEC	60
 #define PLAYER_SPEED	1
 #define MAX_SHOTS	1
@@ -23,17 +30,18 @@
 #define ENEMY_ROWS      5
 #define ENEMY_OFFSET    50
 #define ENEMY_COLUMNS   6
-#define ENEMY_SPEED	20
+#define ENEMY_SPEED	25
 #define ENEMY_SHOT_SPEED 1
 #define ENEMY_SHOT_FLICKER 12
-#define ENEMY_MOVE_RATE 100
+#define PLAYER_DEATH_DELAY 100
+#define ENEMY_MOVE_RATE 200
 #define MAX_ENEMY_SHOTS 5
-#define ENEMY_SHOT_CHANCE 100
-#define CHOMP_SPEED     30
+#define ENEMY_SHOT_CHANCE 500
+#define CHOMP_SPEED     40
 #define EXPLODE_TIME	15
 #define SCREEN_WIDTH    374
 #define SCREEN_HEIGHT   480
-#define MAX_ENEMIES      ENEMY_ROWS * ENEMY_COLUMNS
+#define MAX_ENEMIES     ENEMY_ROWS * ENEMY_COLUMNS
 
 typedef struct {
 	int alive;
@@ -67,11 +75,10 @@ int enemy_shot_frame;
 int music_counter;
 int music_speed;
 int enemy_movement_counter;
-int player_1_lives;
-int player_2_lives;
 int num_players;
 int requests_quit;
 int points[2];
+int lives;
 int current_player; // 0 or 1
 int points_lookup[10];
 Uint32 colours[10];
@@ -152,7 +159,8 @@ int LoadData(void){
 	colours[6] = SDL_MapRGB(screen->format,0x00,0x00,0xFF); //blue
 	colours[7] = SDL_MapRGB(screen->format,0xD0,0x00,0xD0); //violet
 	colours[8] = SDL_MapRGB(screen->format,0xC0,0xC0,0xC0); //grey
-	colours[9] = SDL_MapRGB(screen->format,0xFE,0xFE,0xFE); //white
+	colours[9] = SDL_MapRGB(screen->format,0xFE,0xFF,0xFF); //white
+
 	shot_images[0]     = LoadImage(DATAFILE("shot0.gif"), 0);
 	enemy_images[0][0] = LoadImage(DATAFILE("enemy_0.png"), 1);
 	enemy_images[0][1] = LoadImage(DATAFILE("enemy_1.png"), 1);
@@ -179,13 +187,9 @@ int LoadData(void){
 	enemy_shot_images[1][0]=LoadImage(DATAFILE("enemy_shot_1_0.png"),1);
 	enemy_shot_images[1][1]=LoadImage(DATAFILE("enemy_shot_1_1.png"),1);
 
-	for(i=0;i<MAX_ENEMY_SHOTS;i++){
-		enemy_shots[i].image = enemy_shot_images[0][0];
-	}
+	for(i=0;i<MAX_ENEMY_SHOTS;i++) enemy_shots[i].image = enemy_shot_images[0][0];
 
-	for ( i=1; i<MAX_SHOTS; ++i ) {
-		shots[i].image = shot_images[shots[i].colour];
-	}
+	for (i=1;i<MAX_SHOTS;i++) shots[i].image = shot_images[shots[i].colour];
 
 	enemies[0].image = enemy_images[0][0];
 	if (enemies[0].image==NULL) return(0);
@@ -210,10 +214,7 @@ int LoadData(void){
 	font[4] = SFont_InitFont(IMG_Load(DATAFILE("font-white.png")));
 	font[5] = SFont_InitFont(IMG_Load(DATAFILE("font-green.png")));
 
-
-	for(i=0;i<6;i++){
-		if (!font[i]) return 0;
-	}
+	for(i=0;i<6;i++) if (!font[i]) return 0;
 
 	points_lookup[0] = 1000; //black
 	points_lookup[1] = 750; //brown
@@ -228,11 +229,10 @@ int LoadData(void){
 
 	return(1);
 }
+
 int rand_between(int low, int high){
 	return rand() % (high - low + 1) + low;
 }
-
-
 
 int can_shoot(){
 	int i;
@@ -377,6 +377,16 @@ int need_reverse_enemies(){
 	return 0;
 }
 
+void player_hit(){
+	lives--;
+		player.alive = PLAYER_DEATH_DELAY;
+	if (lives<1){
+		printf("dying\n");
+	} else {
+		printf("hit %d remain\n",lives);
+	}
+}
+
 void WaitFrame(void){
 	static Uint32 next_tick = 0;
 	Uint32 this_tick;
@@ -404,16 +414,9 @@ void show_title_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
-	SDL_Rect dst;
-	dst.x = 0;
-	dst.y = 0;
-	dst.w = SCREEN_WIDTH;
-	dst.h = SCREEN_HEIGHT;
-	SDL_BlitSurface(title_screen,NULL,screen,&dst);
 
-	draw_points();
+	current_player = 0;
 
-	SDL_UpdateRect(screen, 0, 0, 0, 0);
 	for(;;){
                 while (SDL_PollEvent(&event)){
                         if (event.type == SDL_QUIT){
@@ -421,12 +424,34 @@ void show_title_screen(void){
 				return;
 			}
                 }
-		SDL_Delay(50);
+
+		SDL_Rect dst;
+		dst.x = 0;
+		dst.y = 0;
+		dst.w = SCREEN_WIDTH;
+		dst.h = SCREEN_HEIGHT;
+		SDL_BlitSurface(title_screen,NULL,screen,&dst);
+
+		draw_points();
+
+		if (current_player == 0){
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,300,"1 PLAYER");
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,320,"2 PLAYERS");
+		} else {
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,300,"1 PLAYER");
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,320,"2 PLAYERS");
+		}
+
 		keys = SDL_GetKeyState(NULL);
 		if (keys[SDLK_q] == SDL_PRESSED){
 			requests_quit = 1;
 			return;
+		} else if (keys[SDLK_DOWN] == SDL_PRESSED || keys[SDLK_UP] == SDL_PRESSED){
+			current_player = (current_player+1)%2;
 		} else if (keys[SDLK_RETURN] == SDL_PRESSED) return;
+		SDL_UpdateRect(screen, 0, 0, 0, 0);
+
+		SDL_Delay(50);
 	}
 }
 
@@ -437,7 +462,7 @@ void RunGame(void){
 
 	player.alive = 1;
 	player.x = (screen->w - player.image->w)/2;
-	player.y = (screen->h - player.image->h) - 1;
+	player.y = (screen->h - player.image->h) - 1 - PLAYER_HEIGHT;
 	player.facing = 0;
 
 	for (i=0;i<MAX_SHOTS;i++){
@@ -472,18 +497,20 @@ void RunGame(void){
 	music_counter = 0;
 	music_speed = 60;
 	enemy_movement_counter = 0;
+	current_player = 0;
+	lives = LIVES;
 
 	i=castles[0].image->w/2;
 
 	castles[0].x = 1*(SCREEN_WIDTH/4) - i;
 	castles[1].x = 2*(SCREEN_WIDTH/4) - i;
 	castles[2].x = 3*(SCREEN_WIDTH/4) - i;
-	castles[0].y = SCREEN_HEIGHT - 2*castles[0].image->h;
+	castles[0].y = SCREEN_HEIGHT - 2*castles[0].image->h - CASTLE_HEIGHT;
 	castles[1].y = castles[0].y;
 	castles[2].y = castles[0].y;
 
 
-	while ( player.alive ) {
+	while (lives>0) {
 		WaitFrame();
 		while (SDL_PollEvent(&event)){
 			if (event.type==SDL_QUIT) return;
@@ -549,6 +576,7 @@ void RunGame(void){
 			}
 
 			if (shots[i].alive==1){
+				printf("made a shot\n");
 				shots[i].x = player.x+(player.image->w-shots[i].image->w)/2;
 				shots[i].y = player.y-shots[i].image->h;
 				Mix_PlayChannel(SHOT_WAV,sounds[SHOT_WAV], 0);
@@ -664,6 +692,7 @@ void RunGame(void){
 					explosions[i].y = enemies[i].y;
 					explosions[i].alive = EXPLODE_TIME;
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
+					printf("this shot just died\n");
 					shots[j].alive = 0;
 					points[current_player] += points_lookup[enemies[i].colour];
 					break;
@@ -677,7 +706,7 @@ void RunGame(void){
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
 				explosions[i].alive = EXPLODE_TIME;
-				player.alive = 0;
+				player_hit();
 				explosions[MAX_ENEMIES].x = player.x;
 				explosions[MAX_ENEMIES].y = player.y;
 				explosions[MAX_ENEMIES].alive = EXPLODE_TIME;
@@ -690,7 +719,7 @@ void RunGame(void){
 				enemies[i].alive = 0;
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
-				player.alive = 0;
+				player_hit();
 				explosions[MAX_ENEMIES].x = player.x;
 				explosions[MAX_ENEMIES].y = player.y;
 				Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV],0);
@@ -715,12 +744,12 @@ void RunGame(void){
 
 			if (enemy_shots[i].y >= player.y){
 				if (Collision(&enemy_shots[i],&player)){
-					player.alive=0;
+					player_hit();
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
-					break;
-				} else {
 					enemy_shots[i].alive = 0;
+					break;
 				}
+				enemy_shots[i].alive = 0;
 			}
 		}
 				
@@ -750,8 +779,14 @@ void RunGame(void){
 		for(i=0;i<3;i++){
 			DrawObject(&castles[i]);
 		}
-		if ( player.alive ) {
+		if (player.alive<3){
+			if (player.alive==2){
+				player.alive--;
+				player.x = (SCREEN_WIDTH-player.image->w)/2;
+			}
 			DrawObject(&player);
+		} else {
+			player.alive--;
 		}
 		for ( i=0; i<MAX_ENEMIES+1; ++i ) {
 			if ( explosions[i].alive ) {
@@ -760,6 +795,13 @@ void RunGame(void){
 		}
 
 		draw_points();
+
+		for(i=0;i<lives;i++){
+			SDL_Rect a;
+			a.x=LIVES_OFFSET + (player.image->w + LIVES_SPACING)*i;
+			a.y=screen->h - player.image->h - LIVES_HEIGHT;
+			SDL_BlitSurface(player.image,NULL,screen,&a);
+		}			
 
 //		/* Loop the music */
 //		if ( ! Mix_Playing(MUSIC_WAV) ) {
@@ -803,6 +845,21 @@ int main(int argc, char *argv[]){
 		fprintf(stderr, "Couldn't set 640x480 video mode: %s\n",SDL_GetError());
 		exit(2);
 	}
+
+/*	CURL* curl;
+	CURLcode res;
+	char buffer[1024];
+
+	curl = curl_easy_init();
+	if (curl){
+		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com");
+		curl_setopt(curl,CURLOPT_WRITEDATA,buffer);
+		curl_setopt(curl,CURLOPT_TIMEOUT,3);
+		res = curl_easy_perform(curl);
+		printf("buffer: %s\n",buffer);
+		curl_easy_cleanup(curl);
+	}
+*/
 
 	if (LoadData()){
 		/* Initialize the random number generator */
