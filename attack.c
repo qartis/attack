@@ -18,15 +18,16 @@
 #define DATAFILE(X)	DIR_CUR "data" DIR_SEP X
 
 #define LIVES		3
-#define LIVES_OFFSET	50
+#define LIVES_OFFSET	20
 #define LIVES_SPACING   10
-#define LIVES_HEIGHT    0
+#define LIVES_HEIGHT    1
 #define PLAYER_HEIGHT   40
 #define CASTLE_HEIGHT   50
 #define	FRAMES_PER_SEC	60
 #define PLAYER_SPEED	1
 #define MAX_SHOTS	1
 #define SHOT_SPEED	2
+#define SHOT_MAXHEIGHT  30
 #define ENEMY_ROWS      5
 #define ENEMY_OFFSET    50
 #define ENEMY_COLUMNS   6
@@ -59,6 +60,7 @@ SDL_Surface *shot_images[10];
 SDL_Surface *enemy_images[10][2];
 SDL_Surface *castle[3];
 SDL_Surface *enemy_shot_images[2][2];
+SDL_Surface *ic_image;
 
 object player;
 object shots[MAX_SHOTS];
@@ -66,8 +68,10 @@ object enemy_shots[MAX_ENEMY_SHOTS];
 object enemies[MAX_ENEMIES];
 object explosions[MAX_ENEMIES+1];
 object castles[3];
+object ic;
 
 int enemy_direction;
+int generic_counter;
 int chomp_counter;
 int chomp_frame;
 int enemy_shot_counter;
@@ -158,7 +162,7 @@ int LoadData(void){
 	colours[5] = SDL_MapRGB(screen->format,0x00,0xFF,0x00); //green
 	colours[6] = SDL_MapRGB(screen->format,0x00,0x00,0xFF); //blue
 	colours[7] = SDL_MapRGB(screen->format,0xD0,0x00,0xD0); //violet
-	colours[8] = SDL_MapRGB(screen->format,0xC0,0xC0,0xC0); //grey
+	colours[8] = SDL_MapRGB(screen->format,0xB0,0xB0,0xB0); //grey
 	colours[9] = SDL_MapRGB(screen->format,0xFE,0xFF,0xFF); //white
 
 	shot_images[0]     = LoadImage(DATAFILE("shot0.gif"), 0);
@@ -206,6 +210,8 @@ int LoadData(void){
 	castles[0].image = castle[0];
 	castles[1].image = castle[1];
 	castles[2].image = castle[2];
+
+	ic_image = LoadImage(DATAFILE("ic.png"),1);
 
 	font[0] = SFont_InitFont(IMG_Load(DATAFILE("font-bluish.png")));
 	font[1] = SFont_InitFont(IMG_Load(DATAFILE("font-blue.png")));
@@ -328,7 +334,6 @@ int pixel_collision(object *sprite1, object *sprite2, int bottom){
 			if (r+g+b != 3*255) return 1;
 		}
 	}
-
 	return 0;
 }
 
@@ -369,17 +374,18 @@ int find_enemy_who_can_shoot(){
 }
 
 int need_reverse_enemies(){
+	printf("checking need to reverse\n");
 	int i;
 	for(i=0;i<MAX_ENEMIES;i++){
-		if (enemies[i].x+(enemy_direction*ENEMY_SPEED) < 0 ||
-		   (enemies[i].x+enemy_direction*ENEMY_SPEED) >= screen->w-enemies[0].image->w) return 1;
+		if (enemies[i].x+(enemy_direction*ENEMY_SPEED)   < 0 ||
+		   (enemies[i].x+(enemy_direction*ENEMY_SPEED)) >= screen->w-enemies[i].image->w) return 1;
 	}
 	return 0;
 }
 
 void player_hit(){
 	lives--;
-		player.alive = PLAYER_DEATH_DELAY;
+	player.alive = PLAYER_DEATH_DELAY;
 	if (lives<1){
 		printf("dying\n");
 	} else {
@@ -414,7 +420,6 @@ void show_title_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
-
 	current_player = 0;
 
 	for(;;){
@@ -435,23 +440,31 @@ void show_title_screen(void){
 		draw_points();
 
 		if (current_player == 0){
-			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,300,"1 PLAYER");
-			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,320,"2 PLAYERS");
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
 		} else {
-			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,300,"1 PLAYER");
-			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,320,"2 PLAYERS");
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
 		}
 
 		keys = SDL_GetKeyState(NULL);
 		if (keys[SDLK_q] == SDL_PRESSED){
 			requests_quit = 1;
 			return;
-		} else if (keys[SDLK_DOWN] == SDL_PRESSED || keys[SDLK_UP] == SDL_PRESSED){
-			current_player = (current_player+1)%2;
+		} else if (keys[SDLK_DOWN] == SDL_PRESSED){
+			current_player = 1;
+		} else if (keys[SDLK_UP] == SDL_PRESSED){
+			current_player = 0;
 		} else if (keys[SDLK_RETURN] == SDL_PRESSED) return;
+		else if (keys[SDLK_1] == SDL_PRESSED){
+			current_player = 0;
+			return;
+		} else if (keys[SDLK_2] == SDL_PRESSED){
+			current_player = 1;
+			return;
+		}
 		SDL_UpdateRect(screen, 0, 0, 0, 0);
-
-		SDL_Delay(50);
+		SDL_Delay(20);
 	}
 }
 
@@ -591,8 +604,8 @@ void RunGame(void){
 		player.x += player.facing*PLAYER_SPEED;
 
 		if ( player.x < 0 ) player.x = 0;
-		else if ( player.x >= (screen->w-player.image->w) ) {
-			player.x = (screen->w-player.image->w)-1;
+		else if (player.x >= (screen->w-player.image->w)){
+			 player.x  = (screen->w-player.image->w)-1;
 		}
 
 		if (chomp_counter > CHOMP_SPEED){
@@ -620,6 +633,7 @@ void RunGame(void){
 				}
 			}
 		}
+
 		/* Move the enemies' shots */
 		if (enemy_shot_counter > ENEMY_SHOT_FLICKER){
 			enemy_shot_frame = (enemy_shot_frame+1)%2;
@@ -635,37 +649,39 @@ void RunGame(void){
 			}
 		}
 
-		if (enemy_movement_counter > ENEMY_MOVE_RATE) enemy_movement_counter=0;
-		else enemy_movement_counter++;
 
 		/* Move the enemies */
-	if (enemy_movement_counter==0){
-		if (need_reverse_enemies()){
-			enemy_direction = -enemy_direction;
-			for (i=0;i<MAX_ENEMIES;i++){
-				if (enemies[i].alive){
-					enemies[i].y+=enemies[i].image->h;
+		if (enemy_movement_counter > ENEMY_MOVE_RATE){
+			enemy_movement_counter=0;
+
+			if (need_reverse_enemies()){
+				enemy_direction = -enemy_direction;
+				printf("enemy direction is now %d\n",enemy_direction);
+				for (i=0;i<MAX_ENEMIES;i++){
+					if (enemies[i].alive) enemies[i].y+=enemies[i].image->h;
 				}
+				printf("moved all the enemies down\n");
+			} else {
+				for(i=0;i<MAX_ENEMIES;i++){
+					if (enemies[i].alive) enemies[i].x+=enemy_direction*ENEMY_SPEED;
+				}
+				printf("didn't need to reverse, so moved them all forward\n");
 			}
 		} else {
-			for(i=0;i<MAX_ENEMIES;i++){
-				if (enemies[i].alive){
-					enemies[i].x+=enemy_direction*ENEMY_SPEED;
-				}
-			}
+			enemy_movement_counter++;
 		}
-	}
 
 		/* Move the shots */
 		for ( i=0; i<MAX_SHOTS; ++i ) {
 			if ( shots[i].alive ) {
 				shots[i].y -= SHOT_SPEED;
-				if ( shots[i].y < 0 ) {
+				if ( shots[i].y < SHOT_MAXHEIGHT ) {
 					shots[i].alive = 0;
 				}
 			}
 		}
 
+		/* SHOTS AND CASTLES */
 		for(i=0;i<MAX_SHOTS;i++){
 			if (!shots[i].alive) continue;
 			if (pixel_collision(&shots[i],&castles[0],0)){
@@ -683,7 +699,7 @@ void RunGame(void){
 			}
 		}
 
-		/* Detect collisions */
+		/* SHOTS AND ALIENS */
 		for ( j=0; j<MAX_SHOTS; ++j ) {
 			for ( i=0; i<MAX_ENEMIES; ++i ) {
 				if ( shots[j].alive && enemies[i].alive && shots[j].colour == enemies[i].colour && Collision(&shots[j],&enemies[i])) {
@@ -691,6 +707,7 @@ void RunGame(void){
 					explosions[i].x = enemies[i].x;
 					explosions[i].y = enemies[i].y;
 					explosions[i].alive = EXPLODE_TIME;
+//					explosions[i].image = tint(explosions[i].image,colours[enemies[i].colour]);
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
 					printf("this shot just died\n");
 					shots[j].alive = 0;
@@ -700,6 +717,7 @@ void RunGame(void){
 			}
 		}
 
+		/* ENEMIES AND PLAYER */
 		for ( i=0; i<MAX_ENEMIES; ++i ) {
 			if ( enemies[i].alive && Collision(&player, &enemies[i]) ) {
 				enemies[i].alive = 0;
@@ -714,6 +732,7 @@ void RunGame(void){
 			}
 		}
 
+		/* ENEMIES AND CASTLES */
 		for(i=0;i<MAX_ENEMIES;i++){
 			if (enemies[i].alive && (Collision(&castles[0],&enemies[i]) || Collision(&castles[1],&enemies[i]) || Collision(&castles[2],&enemies[i]))){
 				enemies[i].alive = 0;
@@ -726,6 +745,7 @@ void RunGame(void){
 			}
 		}
 
+		/* ENEMY SHOTS AND CASTLES */
 		for(i=0;i<MAX_ENEMY_SHOTS;i++){
 			if (!enemy_shots[i].alive) continue;
 			if (pixel_collision(&enemy_shots[i],&castles[0],1)){
@@ -817,10 +837,11 @@ void RunGame(void){
 	}
 
 	/* Wait for the player to finish exploding */
-	while(Mix_Playing(EXPLODE_WAV)){
-		WaitFrame();
-	}
-	Mix_HaltChannel(-1);
+//	while(Mix_Playing()){
+//		WaitFrame();
+//	}
+//	Mix_HaltChannel(-1);
+
 	return;
 }
 
@@ -882,10 +903,21 @@ int main(int argc, char *argv[]){
 			/* Get some titular action going on */
 			show_title_screen();
 
+			SDL_Delay(200);
+
+			if (current_player == 1){
+				num_players = 2;
+				current_player = 0;
+			}
+
 			if (requests_quit) break;
 
 			/* Run the game */
 			RunGame();
+			if (num_players==2){
+				printf("switching to player %d\n",current_player+1);
+				current_player = (current_player+1)%2;
+			}
 		}
 
 		/* Free the music and artwork */
