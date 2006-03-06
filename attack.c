@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <time.h>
 #include <curl/curl.h>
@@ -89,6 +90,7 @@ int requests_quit;
 int lives;
 int current_player; // 0 or 1
 int points_lookup[10];
+int high_score_data_is_real;
 
 score high_scores[10];
 score player_scores[2];
@@ -130,18 +132,39 @@ SDL_Surface* tint(SDL_Surface *sprite, Uint32 to){
 	return new;
 }
 
+size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
+	int i;
+	*(((char*)buffer)+nmemb) = '\0';
+
+	if ((i=sscanf(buffer,"%d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s",
+	&high_scores[0].points,(char*)&high_scores[0].name,&high_scores[1].points,(char*)&high_scores[1].name,
+	&high_scores[2].points,(char*)&high_scores[2].name,&high_scores[3].points,(char*)&high_scores[3].name,
+	&high_scores[4].points,(char*)&high_scores[4].name,&high_scores[5].points,(char*)&high_scores[5].name,
+	&high_scores[6].points,(char*)&high_scores[6].name,&high_scores[7].points,(char*)&high_scores[7].name,
+	&high_scores[8].points,(char*)&high_scores[8].name,&high_scores[9].points,(char*)&high_scores[9].name))!=20){
+		printf("error: sscanf got %d\n",i);
+	} else {
+		high_score_data_is_real = 1;
+	}
+
+	for(i=0;i<10;i++){
+		printf("score %d: (%d %c%c%c)\n",i,high_scores[i].points,high_scores[i].name[0],high_scores[i].name[1],
+		high_scores[i].name[2]);
+	}
+
+	return size;
+}
+
 void get_scores(void){
 	CURL* curl;
 	CURLcode res;
-	char buffer[1024];
 
 	curl = curl_easy_init();
 	if (curl){
-		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com");
-//		curl_setopt(curl,CURLOPT_WRITEDATA,buffer);
-//		curl_setopt(curl,CURLOPT_TIMEOUT,3);
+		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com/scores.php");
+		curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_write_data);
+		curl_easy_setopt(curl,CURLOPT_TIMEOUT,3);
 		res = curl_easy_perform(curl);
-		printf("buffer: %s\n",buffer);
 		curl_easy_cleanup(curl);
 	}
 }
@@ -900,7 +923,8 @@ int main(int argc, char *argv[]){
 		exit(2);
 	}
 
-	get_scores();
+	high_score_data_is_real = 0;
+//	get_scores();
 
 	if (LoadData()){
 		/* Initialize the random number generator */
