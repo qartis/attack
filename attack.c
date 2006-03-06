@@ -52,6 +52,11 @@ typedef struct {
 	int colour;
 } object;
 
+typedef struct {
+	int points;
+	char name[3];
+} score;
+
 SFont_Font* font[6];
 
 SDL_Surface *screen;
@@ -81,10 +86,13 @@ int music_speed;
 int enemy_movement_counter;
 int num_players;
 int requests_quit;
-int points[2];
 int lives;
 int current_player; // 0 or 1
 int points_lookup[10];
+
+score high_scores[10];
+score player_scores[2];
+
 Uint32 colours[10];
 
 enum {
@@ -121,6 +129,23 @@ SDL_Surface* tint(SDL_Surface *sprite, Uint32 to){
 	SDL_UnlockSurface(new);
 	return new;
 }
+
+void get_scores(void){
+	CURL* curl;
+	CURLcode res;
+	char buffer[1024];
+
+	curl = curl_easy_init();
+	if (curl){
+		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com");
+//		curl_setopt(curl,CURLOPT_WRITEDATA,buffer);
+//		curl_setopt(curl,CURLOPT_TIMEOUT,3);
+		res = curl_easy_perform(curl);
+		printf("buffer: %s\n",buffer);
+		curl_easy_cleanup(curl);
+	}
+}
+
 
 SDL_Surface *LoadImage(char *datafile, int transparent){
 	SDL_Surface *image, *surface;
@@ -386,11 +411,11 @@ int need_reverse_enemies(){
 void player_hit(){
 	lives--;
 	player.alive = PLAYER_DEATH_DELAY;
-	if (lives<1){
+/*	if (lives<1){
 		printf("dying\n");
 	} else {
 		printf("hit %d remain\n",lives);
-	}
+	} */
 }
 
 void WaitFrame(void){
@@ -403,17 +428,25 @@ void WaitFrame(void){
 }
 
 void draw_points(){
-	SFont_Write(screen,font[0],6,5,"SCORE-1");
-	SFont_Write(screen,font[2],SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+	if (current_player == 0){
+		SFont_Write(screen,font[0],6,5,"SCORE-1");
+		SFont_Write(screen,font[2],SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+	} else {
+		SFont_Write(screen,font[2],6,5,"SCORE-1");
+		SFont_Write(screen,font[0],SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+	}
 
 	char buf[7];
-	sprintf(buf,"%.6d",points[0]);
+	sprintf(buf,"%.6d",player_scores[0].points);
 	SFont_Write(screen,font[4],9,17,buf);
 
-	sprintf(buf,"%.6d",points[1]);
+	sprintf(buf,"%.6d",player_scores[1].points);
 	SFont_Write(screen,font[2],SCREEN_WIDTH-9-SFont_TextWidth(font[2],buf),17,buf);
 
 	SFont_Write(screen,font[3],(SCREEN_WIDTH-SFont_TextWidth(font[3],"TAITO"))/2,6,"TAITO");
+
+
+	SFont_Write(screen,font[4],(SCREEN_WIDTH-SFont_TextWidth(font[4],"CREDIT 00")) - 40,SCREEN_HEIGHT-20,"CREDIT 00");
 }
 
 void show_title_screen(void){
@@ -711,7 +744,7 @@ void RunGame(void){
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
 					printf("this shot just died\n");
 					shots[j].alive = 0;
-					points[current_player] += points_lookup[enemies[i].colour];
+					player_scores[current_player].points += points_lookup[enemies[i].colour];
 					break;
 				}
 			}
@@ -867,20 +900,7 @@ int main(int argc, char *argv[]){
 		exit(2);
 	}
 
-/*	CURL* curl;
-	CURLcode res;
-	char buffer[1024];
-
-	curl = curl_easy_init();
-	if (curl){
-		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com");
-		curl_setopt(curl,CURLOPT_WRITEDATA,buffer);
-		curl_setopt(curl,CURLOPT_TIMEOUT,3);
-		res = curl_easy_perform(curl);
-		printf("buffer: %s\n",buffer);
-		curl_easy_cleanup(curl);
-	}
-*/
+	get_scores();
 
 	if (LoadData()){
 		/* Initialize the random number generator */
@@ -891,13 +911,12 @@ int main(int argc, char *argv[]){
 		SDL_ShowCursor( SDL_DISABLE );
 
 
-		points[0] = 0;
-		points[1] = 0;
+		player_scores[0].points = 0;
+		player_scores[1].points = 0;
 
 		current_player = 0;
 
 		requests_quit=0;
-
 
 		while(!requests_quit){
 			/* Get some titular action going on */
