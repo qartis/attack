@@ -1,3 +1,6 @@
+#pgp.mit.edu
+
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -153,20 +156,6 @@ size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
 	}
 
 	return size;
-}
-
-void get_scores(void){
-	CURL* curl;
-	CURLcode res;
-
-	curl = curl_easy_init();
-	if (curl){
-		curl_easy_setopt(curl,CURLOPT_URL,"qartis.com/scores.php");
-		curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_write_data);
-		curl_easy_setopt(curl,CURLOPT_TIMEOUT,3);
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-	}
 }
 
 
@@ -478,11 +467,42 @@ void show_title_screen(void){
 
 	current_player = 0;
 
+	int i;
+
+	CURLM* multi;
+	CURL* curl;
+	CURLcode res;
+
+	printf("initting it\n");
+	multi = curl_multi_init();
+	if (!multi){
+		printf("error initting curl multi interface\n");
+	} else {
+		printf("initted curl multi\n");
+		curl = curl_easy_init();
+		if (!curl){
+			printf("error initting curl easy interface\n");
+		} else {
+			printf("initted curl easy\n");
+			curl_easy_setopt(curl,CURLOPT_URL,"qartis.com/scores.php");
+			curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_write_data);
+//			curl_easy_setopt(curl,CURLOPT_TIMEOUT,3);
+			res = curl_multi_add_handle(multi,curl);
+			printf("added handle\n");
+		}
+	}
+
+
 	for(;;){
+		if (curl && multi && high_score_data_is_real == 0){
+			curl_multi_perform(multi,&i);
+		}
+
                 while (SDL_PollEvent(&event)){
                         if (event.type == SDL_QUIT){
-				requests_quit = 1;
-				return;
+//				requests_quit = 1;
+				printf("quitting\n");
+//				return;
 			}
                 }
 
@@ -901,7 +921,9 @@ void RunGame(void){
 	return;
 }
 
+
 int main(int argc, char *argv[]){
+	printf("yo\n");
 	/* Initialize the SDL library */
 	if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO)<0){
 		fprintf(stderr,"Couldn't initialize SDL: %s\n",SDL_GetError());
@@ -915,14 +937,14 @@ int main(int argc, char *argv[]){
 	}
 
 //	SDL_WM_SetIcon(LoadImage(DATAFILE("icon.png"),0), NULL);
-
+printf("hey\n");
 	/* Open the display device */
 	screen = SDL_SetVideoMode(SCREEN_WIDTH,SCREEN_HEIGHT,32,SDL_HWSURFACE);
 	if (screen==NULL){
 		fprintf(stderr, "Couldn't set 640x480 video mode: %s\n",SDL_GetError());
 		exit(2);
 	}
-
+printf("wasup\n");
 	high_score_data_is_real = 0;
 //	get_scores();
 
@@ -944,6 +966,7 @@ int main(int argc, char *argv[]){
 
 		while(!requests_quit){
 			/* Get some titular action going on */
+			printf("shoting title screen\n");
 			show_title_screen();
 
 			SDL_Delay(200);
