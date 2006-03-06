@@ -1,2 +1,3 @@
 fix the stupid bug where the aliens just keep decending
-make online high-scores retrieval/uploading
+make online high-scores uploading
+make high-scores receiving threaded
