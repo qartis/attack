@@ -1,112 +1,4 @@
-#pgp.mit.edu
-
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <time.h>
-#include <curl/curl.h>
-
-#include "SDL.h"
-#include "SFont.h"
-#include "SDL_mixer.h"
-#include "SDL_image.h"
-
-#ifdef macintosh
-#define DIR_SEP	":"
-#define DIR_CUR ":"
-#else
-#define DIR_SEP	"/"
-#define DIR_CUR	""
-#endif
-#define DATAFILE(X)	DIR_CUR "data" DIR_SEP X
-
-#define LIVES		3
-#define LIVES_OFFSET	20
-#define LIVES_SPACING   10
-#define LIVES_HEIGHT    1
-#define PLAYER_HEIGHT   40
-#define CASTLE_HEIGHT   50
-#define	FRAMES_PER_SEC	60
-#define PLAYER_SPEED	1
-#define MAX_SHOTS	1
-#define SHOT_SPEED	2
-#define SHOT_MAXHEIGHT  30
-#define ENEMY_ROWS      5
-#define ENEMY_OFFSET    50
-#define ENEMY_COLUMNS   6
-#define ENEMY_SPEED	25
-#define ENEMY_SHOT_SPEED 1
-#define ENEMY_SHOT_FLICKER 12
-#define PLAYER_DEATH_DELAY 100
-#define ENEMY_MOVE_RATE 200
-#define MAX_ENEMY_SHOTS 5
-#define ENEMY_SHOT_CHANCE 500
-#define CHOMP_SPEED     40
-#define EXPLODE_TIME	15
-#define SCREEN_WIDTH    374
-#define SCREEN_HEIGHT   480
-#define MAX_ENEMIES     ENEMY_ROWS * ENEMY_COLUMNS
-
-typedef struct {
-	int alive;
-	int facing;
-	int x, y;
-	SDL_Surface *image;
-	int colour;
-} object;
-
-typedef struct {
-	int points;
-	char name[3];
-} score;
-
-SFont_Font* font[6];
-
-SDL_Surface *screen;
-SDL_Surface *title_screen;
-SDL_Surface *shot_images[10];
-SDL_Surface *enemy_images[10][2];
-SDL_Surface *castle[3];
-SDL_Surface *enemy_shot_images[2][2];
-SDL_Surface *ic_image;
-
-object player;
-object shots[MAX_SHOTS];
-object enemy_shots[MAX_ENEMY_SHOTS];
-object enemies[MAX_ENEMIES];
-object explosions[MAX_ENEMIES+1];
-object castles[3];
-object ic;
-
-int enemy_direction;
-int generic_counter;
-int chomp_counter;
-int chomp_frame;
-int enemy_shot_counter;
-int enemy_shot_frame;
-int music_counter;
-int music_speed;
-int enemy_movement_counter;
-int num_players;
-int requests_quit;
-int lives;
-int current_player; // 0 or 1
-int points_lookup[10];
-int high_score_data_is_real;
-
-score high_scores[10];
-score player_scores[2];
-
-Uint32 colours[10];
-
-enum {
-	MUSIC_WAV,
-	SHOT_WAV,
-	EXPLODE_WAV,
-	NUM_WAVES
-};
-Mix_Chunk *sounds[NUM_WAVES];
+#include "attack.h"
 
 void setpixel(SDL_Surface *surface, int x, int y, Uint32 pixel){
     Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * 4;
@@ -139,6 +31,7 @@ size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
 	int i;
 	*(((char*)buffer)+nmemb) = '\0';
 
+	printf("parsing retrieved high-score data.. ");
 	if ((i=sscanf(buffer,"%d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s",
 	&high_scores[0].points,(char*)&high_scores[0].name,&high_scores[1].points,(char*)&high_scores[1].name,
 	&high_scores[2].points,(char*)&high_scores[2].name,&high_scores[3].points,(char*)&high_scores[3].name,
@@ -148,6 +41,7 @@ size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
 		printf("error: sscanf got %d\n",i);
 	} else {
 		high_score_data_is_real = 1;
+		printf("success\n");
 	}
 
 	for(i=0;i<10;i++){
@@ -256,6 +150,7 @@ int LoadData(void){
 	font[3] = SFont_InitFont(IMG_Load(DATAFILE("font-red.png")));
 	font[4] = SFont_InitFont(IMG_Load(DATAFILE("font-white.png")));
 	font[5] = SFont_InitFont(IMG_Load(DATAFILE("font-green.png")));
+	font[6] = SFont_InitFont(IMG_Load(DATAFILE("font-grey.png")));
 
 	for(i=0;i<6;i++) if (!font[i]) return 0;
 
@@ -374,7 +269,7 @@ int pixel_collision(object *sprite1, object *sprite2, int bottom){
 	return 0;
 }
 
-int Collision(object *sprite1, object *sprite2){
+int box_collision(object *sprite1, object *sprite2){
 	if ( (sprite1->y >= (sprite2->y+sprite2->image->h)) ||
 	     (sprite1->x >= (sprite2->x+sprite2->image->w)) ||
 	     (sprite2->y >= (sprite1->y+sprite1->image->h)) ||
@@ -430,7 +325,7 @@ void player_hit(){
 	} */
 }
 
-void WaitFrame(void){
+void wait(void){
 	static Uint32 next_tick = 0;
 	Uint32 this_tick;
 	/* Wait for the next frame */
@@ -439,21 +334,42 @@ void WaitFrame(void){
 	next_tick = this_tick + (1000/FRAMES_PER_SEC);
 }
 
-void draw_points(){
-	if (current_player == 0){
-		SFont_Write(screen,font[0],6,5,"SCORE-1");
-		SFont_Write(screen,font[2],SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+void draw_points(int disabled){
+	SFont_Font* player1_name;
+	SFont_Font* player1_points;
+	SFont_Font* player2_name;
+	SFont_Font* player2_points;
+
+	if (disabled == 1){
+		player1_name = font[6];
+		player1_points = font[6];
+		player2_name = font[6];
+		player2_points = font[6];
 	} else {
-		SFont_Write(screen,font[2],6,5,"SCORE-1");
-		SFont_Write(screen,font[0],SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+		if (current_player == 1){
+			player1_name = font[1];
+			player1_points = font[1];
+			player2_name = font[0];
+			player2_points = font[4];
+		} else {
+			player1_name = font[0];
+			player1_points = font[4];
+			player2_name = font[1];
+			player2_points = font[1];
+		}
 	}
+
+	SFont_Write(screen,player1_points,6,5,"SCORE-1");
 
 	char buf[7];
 	sprintf(buf,"%.6d",player_scores[0].points);
-	SFont_Write(screen,font[4],9,17,buf);
+	SFont_Write(screen,player1_points,9,17,buf);
 
-	sprintf(buf,"%.6d",player_scores[1].points);
-	SFont_Write(screen,font[2],SCREEN_WIDTH-9-SFont_TextWidth(font[2],buf),17,buf);
+	if (num_players == 2){
+		SFont_Write(screen,player2_points,SCREEN_WIDTH-6-SFont_TextWidth(font[2],"SCORE-2"),5,"SCORE-2");
+		sprintf(buf,"%.6d",player_scores[1].points);
+		SFont_Write(screen,player2_points,SCREEN_WIDTH-9-SFont_TextWidth(font[2],buf),17,buf);
+	}
 
 	SFont_Write(screen,font[3],(SCREEN_WIDTH-SFont_TextWidth(font[3],"TAITO"))/2,6,"TAITO");
 
@@ -494,15 +410,15 @@ void show_title_screen(void){
 
 
 	for(;;){
-		if (curl && multi && high_score_data_is_real == 0){
-			curl_multi_perform(multi,&i);
-		}
+//		if (curl && multi && high_score_data_is_real == 0){
+//			curl_multi_perform(multi,&i);
+//		}
 
                 while (SDL_PollEvent(&event)){
                         if (event.type == SDL_QUIT){
-//				requests_quit = 1;
+				requests_quit = 1;
 				printf("quitting\n");
-//				return;
+				return;
 			}
                 }
 
@@ -513,7 +429,7 @@ void show_title_screen(void){
 		dst.h = SCREEN_HEIGHT;
 		SDL_BlitSurface(title_screen,NULL,screen,&dst);
 
-		draw_points();
+		draw_points(1);
 
 		if (current_player == 0){
 			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
@@ -529,8 +445,10 @@ void show_title_screen(void){
 			return;
 		} else if (keys[SDLK_DOWN] == SDL_PRESSED){
 			current_player = 1;
+			num_players = 2;
 		} else if (keys[SDLK_UP] == SDL_PRESSED){
 			current_player = 0;
+			num_players = 1;
 		} else if (keys[SDLK_RETURN] == SDL_PRESSED) return;
 		else if (keys[SDLK_1] == SDL_PRESSED){
 			current_player = 0;
@@ -544,7 +462,7 @@ void show_title_screen(void){
 	}
 }
 
-void RunGame(void){
+void game(void){
 	int i,j;
 	Uint8 *keys;
 	SDL_Event event;
@@ -600,7 +518,7 @@ void RunGame(void){
 
 
 	while (lives>0) {
-		WaitFrame();
+		wait();
 		while (SDL_PollEvent(&event)){
 			if (event.type==SDL_QUIT) return;
 		}
@@ -778,7 +696,7 @@ void RunGame(void){
 		/* SHOTS AND ALIENS */
 		for ( j=0; j<MAX_SHOTS; ++j ) {
 			for ( i=0; i<MAX_ENEMIES; ++i ) {
-				if ( shots[j].alive && enemies[i].alive && shots[j].colour == enemies[i].colour && Collision(&shots[j],&enemies[i])) {
+				if ( shots[j].alive && enemies[i].alive && shots[j].colour == enemies[i].colour && box_collision(&shots[j],&enemies[i])) {
 					enemies[i].alive = 0;
 					explosions[i].x = enemies[i].x;
 					explosions[i].y = enemies[i].y;
@@ -795,7 +713,7 @@ void RunGame(void){
 
 		/* ENEMIES AND PLAYER */
 		for ( i=0; i<MAX_ENEMIES; ++i ) {
-			if ( enemies[i].alive && Collision(&player, &enemies[i]) ) {
+			if ( enemies[i].alive && box_collision(&player, &enemies[i]) ) {
 				enemies[i].alive = 0;
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
@@ -810,7 +728,7 @@ void RunGame(void){
 
 		/* ENEMIES AND CASTLES */
 		for(i=0;i<MAX_ENEMIES;i++){
-			if (enemies[i].alive && (Collision(&castles[0],&enemies[i]) || Collision(&castles[1],&enemies[i]) || Collision(&castles[2],&enemies[i]))){
+			if (enemies[i].alive && (box_collision(&castles[0],&enemies[i]) || box_collision(&castles[1],&enemies[i]) || box_collision(&castles[2],&enemies[i]))){
 				enemies[i].alive = 0;
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
@@ -839,7 +757,7 @@ void RunGame(void){
 			}
 
 			if (enemy_shots[i].y >= player.y){
-				if (Collision(&enemy_shots[i],&player)){
+				if (box_collision(&enemy_shots[i],&player)){
 					player_hit();
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
 					enemy_shots[i].alive = 0;
@@ -890,7 +808,7 @@ void RunGame(void){
 			}
 		}
 
-		draw_points();
+		draw_points(0);
 
 		for(i=0;i<lives;i++){
 			SDL_Rect a;
@@ -914,7 +832,7 @@ void RunGame(void){
 
 	/* Wait for the player to finish exploding */
 //	while(Mix_Playing()){
-//		WaitFrame();
+//		wait();
 //	}
 //	Mix_HaltChannel(-1);
 
@@ -923,7 +841,6 @@ void RunGame(void){
 
 
 int main(int argc, char *argv[]){
-	printf("yo\n");
 	/* Initialize the SDL library */
 	if (SDL_Init(SDL_INIT_AUDIO|SDL_INIT_VIDEO)<0){
 		fprintf(stderr,"Couldn't initialize SDL: %s\n",SDL_GetError());
@@ -937,14 +854,14 @@ int main(int argc, char *argv[]){
 	}
 
 //	SDL_WM_SetIcon(LoadImage(DATAFILE("icon.png"),0), NULL);
-printf("hey\n");
+
 	/* Open the display device */
 	screen = SDL_SetVideoMode(SCREEN_WIDTH,SCREEN_HEIGHT,32,SDL_HWSURFACE);
 	if (screen==NULL){
 		fprintf(stderr, "Couldn't set 640x480 video mode: %s\n",SDL_GetError());
 		exit(2);
 	}
-printf("wasup\n");
+
 	high_score_data_is_real = 0;
 //	get_scores();
 
@@ -966,7 +883,6 @@ printf("wasup\n");
 
 		while(!requests_quit){
 			/* Get some titular action going on */
-			printf("shoting title screen\n");
 			show_title_screen();
 
 			SDL_Delay(200);
@@ -979,10 +895,11 @@ printf("wasup\n");
 			if (requests_quit) break;
 
 			/* Run the game */
-			RunGame();
+			game();
 			if (num_players==2){
-				printf("switching to player %d\n",current_player+1);
 				current_player = (current_player+1)%2;
+				printf("switching to player %d\n",current_player+1);
+				game();
 			}
 		}
 
