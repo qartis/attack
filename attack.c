@@ -381,7 +381,59 @@ void show_title_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
-	current_player = 0;
+	current_player = (num_players==2)?1:0;
+
+	for(;;){
+                while (SDL_PollEvent(&event)){
+                        if (event.type == SDL_QUIT){
+				requests_quit = 1;
+				return;
+			}
+                }
+
+		SDL_Rect dst;
+		dst.x = 0;
+		dst.y = 0;
+		dst.w = SCREEN_WIDTH;
+		dst.h = SCREEN_HEIGHT;
+		SDL_BlitSurface(title_screen,NULL,screen,&dst);
+
+		draw_points(1);
+
+		if (current_player == 0){
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
+		} else {
+			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
+		}
+
+		keys = SDL_GetKeyState(NULL);
+		if (keys[SDLK_q] == SDL_PRESSED){
+			requests_quit = 1;
+			return;
+		} else if (keys[SDLK_DOWN] == SDL_PRESSED){
+			current_player = 1;
+			num_players = 2;
+		} else if (keys[SDLK_UP] == SDL_PRESSED){
+			current_player = 0;
+			num_players = 1;
+		} else if (keys[SDLK_RETURN] == SDL_PRESSED) return;
+		else if (keys[SDLK_1] == SDL_PRESSED){
+			current_player = 0;
+			return;
+		} else if (keys[SDLK_2] == SDL_PRESSED){
+			current_player = 1;
+			return;
+		}
+		SDL_UpdateRect(screen, 0, 0, 0, 0);
+		SDL_Delay(20);
+	}
+}
+
+void end_screen(void){
+	SDL_Event event;
+	Uint8 *keys;
 
 	int i;
 
@@ -429,8 +481,6 @@ void show_title_screen(void){
 		dst.h = SCREEN_HEIGHT;
 		SDL_BlitSurface(title_screen,NULL,screen,&dst);
 
-		draw_points(1);
-
 		if (current_player == 0){
 			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
 			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
@@ -441,7 +491,6 @@ void show_title_screen(void){
 
 		keys = SDL_GetKeyState(NULL);
 		if (keys[SDLK_q] == SDL_PRESSED){
-			requests_quit = 1;
 			return;
 		} else if (keys[SDLK_DOWN] == SDL_PRESSED){
 			current_player = 1;
@@ -901,6 +950,7 @@ int main(int argc, char *argv[]){
 				printf("switching to player %d\n",current_player+1);
 				game();
 			}
+			end_screen();
 		}
 
 		/* Free the music and artwork */
