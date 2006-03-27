@@ -435,37 +435,7 @@ void end_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
-	int i;
-
-	CURLM* multi;
-	CURL* curl;
-	CURLcode res;
-
-	printf("initting it\n");
-	multi = curl_multi_init();
-	if (!multi){
-		printf("error initting curl multi interface\n");
-	} else {
-		printf("initted curl multi\n");
-		curl = curl_easy_init();
-		if (!curl){
-			printf("error initting curl easy interface\n");
-		} else {
-			printf("initted curl easy\n");
-			curl_easy_setopt(curl,CURLOPT_URL,"qartis.com/scores.php");
-			curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,curl_write_data);
-//			curl_easy_setopt(curl,CURLOPT_TIMEOUT,3);
-			res = curl_multi_add_handle(multi,curl);
-			printf("added handle\n");
-		}
-	}
-
-
 	for(;;){
-//		if (curl && multi && high_score_data_is_real == 0){
-//			curl_multi_perform(multi,&i);
-//		}
-
                 while (SDL_PollEvent(&event)){
                         if (event.type == SDL_QUIT){
 				requests_quit = 1;
@@ -767,7 +737,7 @@ void game(void){
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
 				explosions[i].alive = EXPLODE_TIME;
-				player_hit();
+				lives = 0;
 				explosions[MAX_ENEMIES].x = player.x;
 				explosions[MAX_ENEMIES].y = player.y;
 				explosions[MAX_ENEMIES].alive = EXPLODE_TIME;
@@ -781,7 +751,7 @@ void game(void){
 				enemies[i].alive = 0;
 				explosions[i].x = enemies[i].x;
 				explosions[i].y = enemies[i].y;
-				player_hit();
+				lives = 0;
 				explosions[MAX_ENEMIES].x = player.x;
 				explosions[MAX_ENEMIES].y = player.y;
 				Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV],0);
