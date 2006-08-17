@@ -53,7 +53,7 @@ size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
 }
 
 
-SDL_Surface *LoadImage(char *datafile, int transparent){
+SDL_Surface *load_image(char *datafile, int transparent){
 	SDL_Surface *image, *surface;
 
 	image = IMG_Load(datafile);
@@ -70,7 +70,7 @@ SDL_Surface *LoadImage(char *datafile, int transparent){
 	return(surface);
 }
 
-int LoadData(void){
+int load_data(void){
 	int i;
 
 	/* Load sounds */
@@ -79,7 +79,7 @@ int LoadData(void){
 	sounds[EXPLODE_WAV] = Mix_LoadWAV(DATAFILE("kaboom.wav"));
 
 	/* Load graphics */
-	player.image = LoadImage(DATAFILE("player.gif"), 1);
+	player.image = load_image(DATAFILE("player.gif"), 1);
 	if ( player.image == NULL ){
 		printf("player.image == NULL\n");
 		return(0);
@@ -96,9 +96,9 @@ int LoadData(void){
 	colours[8] = SDL_MapRGB(screen->format,0xB0,0xB0,0xB0); //grey
 	colours[9] = SDL_MapRGB(screen->format,0xFE,0xFF,0xFF); //white
 
-	shot_images[0]     = LoadImage(DATAFILE("shot0.gif"), 0);
-	enemy_images[0][0] = LoadImage(DATAFILE("enemy_0.png"), 1);
-	enemy_images[0][1] = LoadImage(DATAFILE("enemy_1.png"), 1);
+	shot_images[0]     = load_image(DATAFILE("shot0.gif"), 0);
+	enemy_images[0][0] = load_image(DATAFILE("enemy_0.png"), 1);
+	enemy_images[0][1] = load_image(DATAFILE("enemy_1.png"), 1);
 
 	for(i=1;i<10;i++){
 		shot_images[i] = tint(shot_images[0],colours[i]);
@@ -117,10 +117,10 @@ int LoadData(void){
 		}
 	}
 
-	enemy_shot_images[0][0]=LoadImage(DATAFILE("enemy_shot_0_0.png"),1);
-	enemy_shot_images[0][1]=LoadImage(DATAFILE("enemy_shot_0_1.png"),1);
-	enemy_shot_images[1][0]=LoadImage(DATAFILE("enemy_shot_1_0.png"),1);
-	enemy_shot_images[1][1]=LoadImage(DATAFILE("enemy_shot_1_1.png"),1);
+	enemy_shot_images[0][0]=load_image(DATAFILE("enemy_shot_0_0.png"),1);
+	enemy_shot_images[0][1]=load_image(DATAFILE("enemy_shot_0_1.png"),1);
+	enemy_shot_images[1][0]=load_image(DATAFILE("enemy_shot_1_0.png"),1);
+	enemy_shot_images[1][1]=load_image(DATAFILE("enemy_shot_1_1.png"),1);
 
 	for(i=0;i<MAX_ENEMY_SHOTS;i++) enemy_shots[i].image = enemy_shot_images[0][0];
 
@@ -130,19 +130,19 @@ int LoadData(void){
 	if (enemies[0].image==NULL) return(0);
 	for (i=1;i<MAX_ENEMIES;i++) enemies[i].image = enemies[0].image;
 
-	explosions[0].image = LoadImage(DATAFILE("blam.gif"), 1);
+	explosions[0].image = load_image(DATAFILE("blam.gif"), 1);
 
 	for (i=1;i<MAX_ENEMIES+1;i++) explosions[i].image = explosions[0].image;
 
-	title_screen = LoadImage(DATAFILE("title_screen.png"), 0);
+	title_screen = load_image(DATAFILE("title_screen.png"), 0);
 
-	for(i=0;i<3;i++) castle[i] = LoadImage(DATAFILE("castle.png"),1);
+	for(i=0;i<3;i++) castle[i] = load_image(DATAFILE("castle.png"),1);
 
 	castles[0].image = castle[0];
 	castles[1].image = castle[1];
 	castles[2].image = castle[2];
 
-	ic_image = LoadImage(DATAFILE("ic.png"),1);
+	ic_image = load_image(DATAFILE("ic.png"),1);
 
 	font[0] = SFont_InitFont(IMG_Load(DATAFILE("font-bluish.png")));
 	font[1] = SFont_InitFont(IMG_Load(DATAFILE("font-blue.png")));
@@ -310,8 +310,12 @@ int need_reverse_enemies(){
 	int i;
 	for(i=0;i<MAX_ENEMIES;i++){
 		if (enemies[i].x+(enemy_direction*ENEMY_SPEED)   < 0 ||
-		   (enemies[i].x+(enemy_direction*ENEMY_SPEED)) >= screen->w-enemies[i].image->w) return 1;
+		   (enemies[i].x+(enemy_direction*ENEMY_SPEED)) >= screen->w-enemies[i].image->w){
+			printf("yes, reversing\n");
+			return 1;
+		}
 	}
+	printf("determined that I don't need to reverse\n");
 	return 0;
 }
 
@@ -722,7 +726,6 @@ void game(void){
 					explosions[i].alive = EXPLODE_TIME;
 //					explosions[i].image = tint(explosions[i].image,colours[enemies[i].colour]);
 					Mix_PlayChannel(EXPLODE_WAV,sounds[EXPLODE_WAV], 0);
-					printf("this shot just died\n");
 					shots[j].alive = 0;
 					player_scores[current_player].points += points_lookup[enemies[i].colour];
 					break;
@@ -872,7 +875,14 @@ int main(int argc, char *argv[]){
 		"Warning: Couldn't set 11025 Hz 8-bit audio\n- Reason: %s\n",SDL_GetError());
 	}
 
-//	SDL_WM_SetIcon(LoadImage(DATAFILE("icon.png"),0), NULL);
+
+	Uint32 key;
+	SDL_Surface *wm_icon;
+
+	wm_icon = SDL_LoadBMP(DATAFILE("wm_icon.bmp"));
+	key = SDL_MapRGB(wm_icon->format, 255, 0, 255);
+	SDL_SetColorKey(wm_icon, SDL_SRCCOLORKEY, key); 
+	SDL_WM_SetIcon(wm_icon,NULL);
 
 	/* Open the display device */
 	screen = SDL_SetVideoMode(SCREEN_WIDTH,SCREEN_HEIGHT,32,SDL_HWSURFACE);
@@ -883,15 +893,12 @@ int main(int argc, char *argv[]){
 
 	high_score_data_is_real = 0;
 //	get_scores();
-
-	if (LoadData()){
+	if (load_data()){
 		/* Initialize the random number generator */
 		srand(time(NULL));
 
-		/* Load the music and artwork */
 		SDL_WM_SetCaption("Space Resistors!","OMGOMGOMG");
 		SDL_ShowCursor( SDL_DISABLE );
-
 
 		player_scores[0].points = 0;
 		player_scores[1].points = 0;

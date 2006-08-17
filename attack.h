@@ -45,7 +45,7 @@
 
 #define PLAYER_SPEED	1
 #define SHOT_SPEED	2
-#define ENEMY_SPEED	25
+#define ENEMY_SPEED	17
 #define ENEMY_SHOT_SPEED 1
 #define ENEMY_SHOT_FLICKER 12
 #define PLAYER_DEATH_DELAY 100
@@ -71,6 +71,7 @@ SFont_Font* font[7];
 
 SDL_Surface *screen;
 SDL_Surface *title_screen;
+SDL_Surface *wm_icon;
 SDL_Surface *shot_images[10];
 SDL_Surface *enemy_images[10][2];
 SDL_Surface *castle[3];
@@ -127,7 +128,7 @@ int can_shoot(void);
 int dead_shot(void);
 void player_hit(void);
 
-int LoadData(void);
+int load_data(void);
 void free_data(void);
 void castle_hit(object *castle, int x, int y, int down);
 int rand_between(int low, int high);
