@@ -5,20 +5,40 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-#include <curl/curl.h>
 
 #include "SDL.h"
 #include "SFont.h"
 #include "SDL_mixer.h"
 #include "SDL_image.h"
 
+
+
 #ifdef macintosh
+#warning MAC is target
 #define DIR_SEP	":"
 #define DIR_CUR ":"
+#define MAC
 #else
 #define DIR_SEP	"/"
 #define DIR_CUR	""
 #endif
+
+#ifdef _WIN32
+#define	W32
+#endif
+#ifdef __Windows
+#define	W32
+#endif
+
+#ifndef W32
+#ifndef MAC
+#define LINUX
+#warning LINUX is target
+#endif
+#else
+#warning WINDOWS is target
+#endif
+
 #define DATAFILE(X)	DIR_CUR "data" DIR_SEP X
 
 
@@ -86,7 +106,7 @@ object explosions[MAX_ENEMIES+1];
 object castles[3];
 object ic;
 
-int enemy_direction;
+volatile int enemy_direction;
 int generic_counter;
 int chomp_counter;
 int chomp_frame;
@@ -140,8 +160,6 @@ int box_collision(object *sprite1, object *sprite2);
 
 int find_enemy_who_can_shoot(void);
 int need_reverse_enemies(void);
-
-size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp);
 
 void draw_points(int disabled);
 void show_title_screen(void);

@@ -27,32 +27,6 @@ SDL_Surface* tint(SDL_Surface *sprite, Uint32 to){
 	return new;
 }
 
-size_t curl_write_data(void* buffer, size_t size, size_t nmemb, void* userp){
-	int i;
-	*(((char*)buffer)+nmemb) = '\0';
-
-	printf("parsing retrieved high-score data.. ");
-	if ((i=sscanf(buffer,"%d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s %d %s",
-	&high_scores[0].points,(char*)&high_scores[0].name,&high_scores[1].points,(char*)&high_scores[1].name,
-	&high_scores[2].points,(char*)&high_scores[2].name,&high_scores[3].points,(char*)&high_scores[3].name,
-	&high_scores[4].points,(char*)&high_scores[4].name,&high_scores[5].points,(char*)&high_scores[5].name,
-	&high_scores[6].points,(char*)&high_scores[6].name,&high_scores[7].points,(char*)&high_scores[7].name,
-	&high_scores[8].points,(char*)&high_scores[8].name,&high_scores[9].points,(char*)&high_scores[9].name))!=20){
-		printf("error: sscanf got %d\n",i);
-	} else {
-		high_score_data_is_real = 1;
-		printf("success\n");
-	}
-
-	for(i=0;i<10;i++){
-		printf("score %d: (%d %c%c%c)\n",i,high_scores[i].points,high_scores[i].name[0],high_scores[i].name[1],
-		high_scores[i].name[2]);
-	}
-
-	return size;
-}
-
-
 SDL_Surface *load_image(char *datafile, int transparent){
 	SDL_Surface *image, *surface;
 
@@ -385,7 +359,8 @@ void show_title_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
-	current_player = (num_players==2)?1:0;
+	num_players = 1;
+	current_player = 0;
 
 	for(;;){
                 while (SDL_PollEvent(&event)){
@@ -439,6 +414,16 @@ void end_screen(void){
 	SDL_Event event;
 	Uint8 *keys;
 
+
+	int left_was_pressed = 0;
+	int right_was_pressed = 0;
+	int up_was_pressed = 0;
+	int down_was_pressed = 0;
+	int current_player_initials = 0;
+	int current_letter = 0;
+	char player_initials[num_players][3];
+
+	printf("num_players: %d\n",num_players);
 	for(;;){
                 while (SDL_PollEvent(&event)){
                         if (event.type == SDL_QUIT){
@@ -453,32 +438,92 @@ void end_screen(void){
 		dst.y = 0;
 		dst.w = SCREEN_WIDTH;
 		dst.h = SCREEN_HEIGHT;
-		SDL_BlitSurface(title_screen,NULL,screen,&dst);
+		SDL_FillRect(screen,&dst,colours[0]);
 
-		if (current_player == 0){
-			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
-			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
+
+		SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],"GAME OVER"))/2,150,"GAME OVER");
+
+		if (num_players == 1){
+			player_initials[0][0] = 'A';
+			player_initials[0][1] = 'A';
+			player_initials[0][2] = 'A';
+			char score_text[15];
+			char name_text[10];
+			sprintf(score_text,"SCORE: %d",player_scores[0].points);
+			sprintf(name_text,"NAME: %c%c%c",player_initials[0][0],player_initials[0][1],player_initials[0][2]);
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],score_text))/2,200,score_text);
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],name_text ))/2,215,name_text );
+
+SFont_Write(screen,font[0],(screen->w + SFont_TextWidth(font[0],name_text))/2-SFont_TextWidth(font[0],"A")*((2-current_letter)+1)-1,217,"_");
+
 		} else {
-			SFont_Write(screen,font[1],(screen->w - SFont_TextWidth(font[0],"1 PLAYER"))/2,340,"1 PLAYER");
-			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[1],"2 PLAYER"))/2,360,"2 PLAYERS");
+			player_initials[0][0] = 'A';
+			player_initials[0][1] = 'A';
+			player_initials[0][2] = 'A';
+
+			player_initials[1][0] = 'A';
+			player_initials[1][1] = 'A';
+			player_initials[1][2] = 'A';
+
+
+			char score_text[2][50];
+			char name_text[10];
+			sprintf(score_text[0],"PLAYER 1 SCORE: %d",player_scores[0].points);
+			sprintf(score_text[1],"PLAYER 2 SCORE: %d",player_scores[1].points);
+
+			sprintf(name_text, "NAME: %c%c%c",player_initials[0][0],player_initials[0][1],player_initials[0][2]);
+
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],score_text[0]))/2,200,score_text[0]);
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],name_text ))/2,215,name_text );
+
+			sprintf(name_text, "NAME: %c%c%c",player_initials[1][0],player_initials[1][1],player_initials[1][2]);
+
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],score_text[0]))/2,235,score_text[1]);
+			SFont_Write(screen,font[0],(screen->w - SFont_TextWidth(font[0],name_text ))/2,250,name_text );
 		}
+//		CURLOPT_TIMEOUT
 
 		keys = SDL_GetKeyState(NULL);
 		if (keys[SDLK_q] == SDL_PRESSED){
+			requests_quit = 1;
 			return;
-		} else if (keys[SDLK_DOWN] == SDL_PRESSED){
-			current_player = 1;
-			num_players = 2;
-		} else if (keys[SDLK_UP] == SDL_PRESSED){
-			current_player = 0;
-			num_players = 1;
-		} else if (keys[SDLK_RETURN] == SDL_PRESSED) return;
-		else if (keys[SDLK_1] == SDL_PRESSED){
-			current_player = 0;
+		} else if (keys[SDLK_ESCAPE] == SDL_PRESSED){
+			requests_quit = 1;
 			return;
-		} else if (keys[SDLK_2] == SDL_PRESSED){
-			current_player = 1;
+		} else if (keys[SDLK_RETURN] == SDL_PRESSED){
+			requests_quit = 0;
 			return;
+		}
+
+		if (keys[SDLK_LEFT] == SDL_PRESSED){
+			if (!left_was_pressed){
+				current_letter-=1;
+				if (current_letter<0) current_letter=2;
+				left_was_pressed = 1;
+			}
+		} else {
+			left_was_pressed = 0;
+		}
+
+		if (keys[SDLK_RIGHT] == SDL_PRESSED){
+			if (!right_was_pressed){
+				current_letter+=1;
+				current_letter%=3;
+				right_was_pressed = 1;
+			}
+		} else {
+			right_was_pressed = 0;
+		}
+		if (keys[SDLK_UP] == SDL_PRESSED){
+			if (!up_was_pressed){
+				if (player_initials[0][current_letter] >= 'Z'){
+					player_initials[0][current_letter] = 'A';
+				} else {
+					player_initials[0][current_letter]++;
+				}
+			}
+		} else {
+			up_was_pressed = 0;
 		}
 		SDL_UpdateRect(screen, 0, 0, 0, 0);
 		SDL_Delay(20);
@@ -527,7 +572,6 @@ void game(void){
 	music_counter = 0;
 	music_speed = 60;
 	enemy_movement_counter = 0;
-	current_player = 0;
 	lives = LIVES;
 
 	i=castles[0].image->w/2;
@@ -547,7 +591,7 @@ void game(void){
 		}
 		keys = SDL_GetKeyState(NULL);
 
-		if (keys[SDLK_q] == SDL_PRESSED){ requests_quit = 1; return; }
+		if (keys[SDLK_q] == SDL_PRESSED || keys[SDLK_ESCAPE] == SDL_PRESSED){ requests_quit = 1; return; }
 
 		/* Paint the background */
 //		SDL_Rect dst;
@@ -603,7 +647,10 @@ void game(void){
 				shots[i].alive = 1;
 				shots[i].colour = 9;
 				shots[i].image = shot_images[9];
+			} else if (keys[SDLK_DOLLAR] == SDL_PRESSED){
+				lives = 0;
 			}
+	
 
 			if (shots[i].alive==1){
 				printf("made a shot\n");
@@ -928,6 +975,7 @@ int main(int argc, char *argv[]){
 				game();
 			}
 			end_screen();
+			SDL_Delay(400);
 		}
 
 		/* Free the music and artwork */
