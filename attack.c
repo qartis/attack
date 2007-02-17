@@ -1,4 +1,5 @@
 #include "attack.h"
+//#include "data/title_screen.xpm"
 
 void setpixel(SDL_Surface *surface, int x, int y, Uint32 pixel){
     Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * 4;
@@ -109,6 +110,7 @@ int load_data(void){
 	for (i=1;i<MAX_ENEMIES+1;i++) explosions[i].image = explosions[0].image;
 
 	title_screen = load_image(DATAFILE("title_screen.png"), 0);
+//	title_screen = IMG_ReadXPMFromArray(title_screen_xpm);
 
 	for(i=0;i<3;i++) castle[i] = load_image(DATAFILE("castle.png"),1);
 
@@ -192,7 +194,7 @@ void castle_hit(object *castle, int x, int y, int down){
 }
 
 
-void FreeData(void){
+void free_data(void){
 	int i;
 
 	for ( i=0; i<NUM_WAVES; ++i ) Mix_FreeChunk(sounds[i]);
@@ -978,8 +980,7 @@ int main(int argc, char *argv[]){
 			SDL_Delay(400);
 		}
 
-		/* Free the music and artwork */
-		FreeData();
+		free_data();
 		Mix_CloseAudio();
 	} else {
 		printf("failed to init data\n");
