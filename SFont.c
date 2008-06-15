@@ -24,7 +24,7 @@
     GERMANY
     karlb@gmx.net                                                      
 */                                                                            
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -73,7 +73,7 @@ SFont_Font* SFont_InitFont(SDL_Surface* Surface)
     Uint32 pink;
 
     if (Surface == NULL)
-	return NULL;
+        return NULL;
 
     Font = (SFont_Font *) malloc(sizeof(SFont_Font));
     Font->Surface = Surface;
