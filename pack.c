@@ -59,10 +59,6 @@ void append_res (int packfd, const char *path, uint32_t* nb_res) {
 			fprintf (stderr, "Can't stat %s\n", tmp_path);
 			exit(EXIT_FAILURE);
 		}
-	/*	if (S_ISDIR(s.st_mode)) {
-			append_res (packfd, tmp_path, nb_res);
-		} else 
-		*/
 		if (S_ISREG(s.st_mode)) {
 			append_file (packfd, tmp_path, entry->d_name);
 			++(*nb_res);
