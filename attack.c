@@ -1060,6 +1060,7 @@ int main(int argc, char *argv[]){
 			} while (!requests_quit && player.alive);
         }
         Mix_HaltMusic();
+		Mix_HaltChannel(UFO_WAV);// if there was a ufo onscreen when player died
         if (requests_quit) break;
         SDL_Delay(1000);
         Mix_PlayMusic(songs[DEAD_SONG],-1);
