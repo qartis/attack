@@ -10,6 +10,10 @@
 #include <SDL/SDL_image.h>
 #define SUFFIX "DATA"
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 void __debug(const char *function, int lineno, const char *fmt, ...){
     const char *format = "%20s():%-3d  ";
     va_list ap;
@@ -180,7 +184,7 @@ int load_data(void){
 int open_resource(char *filename){
     int suffix_len = strlen(SUFFIX)+1;
     char buffer[suffix_len];
-    int fd = open(filename, O_RDONLY);
+    int fd = open(filename, O_RDONLY|O_BINARY);
     if (fd < 0){
         perror("Error opening resource file");
         return -1;
@@ -222,9 +226,10 @@ char *get_resource(char *resourcename, int *filesize) {
         if (i%2){
             data_size = cur;
         } else {
-			off_t a = cur;
+            off_t a = cur;
             lseek(fd,-a,SEEK_CUR);
             filename = realloc(filename,cur+1);
+            printf("tried to realloc to %ld, got %p\n",cur+1,filename);
             if (filename){
                 memset(filename, 0, cur+1);
                 read(fd,filename,cur);

@@ -2,20 +2,19 @@ CFLAGS = -O1 -c -I/usr/include -g -fPIC
 LFLAGS = -lSDL -lSDL_mixer -lSDL_image  -lcurl
 COMPILE = gcc -Wall
 
-WCFLAGS = -O1 -c -g -I/usr/local/cross-tools/include
-WLFLAGS = -L/usr/local/cross-tools/lib -lSDL_mixer -lSDL_image -lcurl -lmingw32 -lSDLmain -lSDL -mwindows
-WCOMPILE = /usr/local/cross-tools/bin/i386-mingw32-gcc -Wall
+WCFLAGS = -O1 -c -g -I/usr/i486-mingw32/include
+WLFLAGS = -L/usr/i486-mingw32/lib -lSDL_mixer -lSDL_image -lcurl -lmingw32 -lSDLmain -lSDL -mwindows
+WCOMPILE = i486-mingw32-gcc -Wall
 
 
 all: attack
 
 pack: pack.c
-	@gcc -Wall -O2 -o pack pack.c
-	@strip pack
+	@$(COMPILE) -O2 -o pack pack.c
 
 attack: attack.o SFont.o net.o data.o pack
 	$(COMPILE) $(LFLAGS) -o attack attack.o SFont.o net.o data.o
-	@./pack attack
+#	@./pack attack
 
 attack.o: attack.c attack.h
 	$(COMPILE) $(CFLAGS) -o attack.o attack.c
@@ -53,9 +52,9 @@ winzip: win
 
 win: attack.exe
 
-attack.exe: wattack.o wSFont.o wnet.o wdata.o pack
+attack.exe: wattack.o wSFont.o wnet.o wdata.o pack.exe
 	$(WCOMPILE) wSFont.o wnet.o wattack.o wdata.o -o attack.exe $(WLFLAGS)
-	@./pack attack.exe
+#	wine pack.exe attack.exe
 
 wattack.o: attack.c attack.h
 	$(WCOMPILE) $(WCFLAGS) -o wattack.o attack.c
@@ -69,5 +68,8 @@ wSFont.o: SFont.c SFont.h
 wdata.o: data.c
 	$(WCOMPILE) $(WCFLAGS) -o wdata.o data.c
 
+pack.exe: pack.c
+	$(WCOMPILE) -O2 -o pack.exe pack.c
+  
 clean:
 	@rm -f *.o attack{,-win}{,.exe,.zip} *~

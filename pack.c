@@ -9,6 +9,10 @@
 #include <limits.h>
 #include <stdint.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 const char CHECK_SUFFIX[] = "DATA";
 const uint32_t l_size = sizeof(uint32_t);
 const uint32_t suffix_len = sizeof(CHECK_SUFFIX);
@@ -24,16 +28,16 @@ void append_file (int packfd, const char *path, const char *filename) {
 	write (packfd, &bufferlen, l_size);
 
 	taille = 0;
-	datafd = open (path, O_RDONLY);
+	datafd = open (path, O_RDONLY|O_BINARY);
 	if (-1 == datafd) {
 		printf ("Error adding %s\n", path);
 		exit(EXIT_FAILURE);
 	}
-    for(;;){
+  for(;;){
 		bufferlen = read (datafd, buffer, sizeof(buffer));
 		if (bufferlen > 0) taille += write (packfd, buffer, bufferlen);
 		else break;
-    }
+  }
 
 	write (packfd, &taille, l_size);
 	close (datafd);
@@ -81,7 +85,7 @@ int main (int argc, char** argv) {
 
 	file = argv[1];
 
-	fd = open (file, O_APPEND | O_WRONLY);
+	fd = open (file, O_APPEND | O_WRONLY | O_BINARY);
 	if (-1 == fd) {
 		return 1;
 	}
