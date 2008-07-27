@@ -4,6 +4,17 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <pthread.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <bzlib.h>
+#ifdef __WIN32__
+#define CURL_STATICLIB 1
+#define edition 'w'
+#else
+#define edition 'l'
+#endif
+#include <curl/curl.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_mixer.h>
@@ -12,13 +23,27 @@
 
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
+#ifdef debug
+#define DBG(code) code 
+#else
+#define DBG(code) 
+#endif
+#define DEBUG(...) DBG(__debug(__FUNCTION__, __LINE__, __VA_ARGS__))
+#define MUS(code) if (music_ok){ code }
+
+double ver;
+
 #define	FRAMES_PER_SEC	30
 #define SCREEN_WIDTH    374
 #define SCREEN_HEIGHT   480
 #define MAX_ENEMIES     ENEMY_ROWS * ENEMY_COLUMNS
 
 #define LIVES		3
-#define MAX_SHOTS	10
+#ifdef debug
+#define MAX_SHOTS	3
+#else
+#define MAX_SHOTS 1
+#endif
 #define MAX_ENEMY_SHOTS 1
 #define MAX_EXPLOSIONS MAX_ENEMIES+MAX_ENEMY_SHOTS+1+1
 
@@ -41,13 +66,13 @@
 #define ENEMY_ROWS      5
 #define ENEMY_COLUMNS   7
 
-#define PLAYER_SPEED	3
-#define SHOT_SPEED	10
+#define PLAYER_SPEED	4
+#define SHOT_SPEED	12
 #define ENEMY_SPEED	20
 #define ENEMY_SHOT_SPEED 5
 #define ENEMY_SHOT_FLICKER 3
-#define ENEMY_SHOT_MIN_DELAY 25
-#define ENEMY_SHOT_MAX_DELAY 75
+#define ENEMY_SHOT_MIN_DELAY 30
+#define ENEMY_SHOT_MAX_DELAY 60
 #define PLAYER_DEATH_DELAY 40
 #define ENEMY_MOVE_RATE 80
 #define MOVE_RATE_DECREMENT 10
@@ -60,6 +85,10 @@
 #define HIGHSCORES_WIDTH 100
 #define HIGHSCORES_STARTHEIGHT 160
 
+#ifdef TRANSPARENT
+#undef TRANSPARENT /* windows has TRANSPARENT defined somewhere */
+#endif
+
 enum {
 	BLACK,
 	BROWN,
@@ -71,7 +100,7 @@ enum {
 	VIOLET,
 	GREY,
 	WHITE,
-	TRANSPARENT,
+  TRANSPARENT,
 	NUM_COLOURS
 };
 	
@@ -98,12 +127,16 @@ typedef struct {
 SFont_Font* font[7];
 
 SDL_Surface *screen;
+SDL_Surface *icon;
 SDL_Surface *title_screen;
 SDL_Surface *shot_images[10];
 SDL_Surface *enemy_images[3][10][2];
 SDL_Surface *enemy_shot_images[2][2];
 SDL_Surface *castle_bits[5][4];
+#ifdef intro
 SDL_Surface *intro_frames[16];
+SDL_TimerID intro_timer;
+#endif
 
 object player;
 object shots[MAX_SHOTS];
@@ -113,14 +146,13 @@ object explosions[MAX_EXPLOSIONS];//player, boss
 castle castles[3];
 object boss;
 
-SDL_TimerID intro_timer;
-
 int num_players;
 int requests_quit;
 int current_player; // 0 or 1
 int points_lookup[11];
 int high_score_data_is_real;
-char url[128];
+pthread_mutex_t mutex;
+int music_ok;
 int flags; //video flags for fullscreen
 
 score high_scores[10];
@@ -133,25 +165,27 @@ int fd;
 enum {
 	SHOT_WAV,
 	EXPLODE_WAV,
-    PAUSE_WAV,
+  PAUSE_WAV,
 	UFO_WAV,
 	UFO_EXPLODE_WAV,
-    NUM_WAVES
+  NUM_WAVES
 };
 
 enum {
-    MENU_SONG,
-    DEAD_SONG,
-    LEVEL1_SONG,
-	INTRO_SONG,
-    NUM_SONGS
+  MENU_SONG,
+  DEAD_SONG,
+  LEVEL1_SONG,
+  LEVEL2_SONG,
+  LEVEL3_SONG,
+  INTRO_SONG,
+  NUM_SONGS
 };
 
 enum {
-    LEFT,
-    UP,
-    DOWN,
-    RIGHT
+  LEFT,
+  UP,
+  DOWN,
+  RIGHT
 };
 
 Mix_Chunk *sounds[NUM_WAVES];
@@ -166,7 +200,9 @@ int can_shoot(int);
 int dead_shot(void);
 void player_hit(void);
 
-int load_data(void);
+void load_early_data(void);
+void load_early_song(void);
+void load_data(void);
 void castle_hit(object *castle, int x, int y, int down);
 int rand_between(int low, int high);
 void wait(void);
@@ -193,6 +229,7 @@ int castle_collision(object*,castle*);
 void castle_block_hit(castle*,int);
 void draw_castle(castle*);
 void toggle_mute(void);
+void check_for_patch(int argc, char **argv);
+void ask_for_patch(void);
+char *apply_patch(const char *patch_path,const char *my_path);
 void __debug(const char*,int,const char *fmt,...) __attribute__((format(printf, 3, 4)));
-#define DBG(code) code 
-#define DEBUG(...) DBG(__debug(__FUNCTION__, __LINE__, __VA_ARGS__))
