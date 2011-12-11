@@ -1,37 +1,19 @@
-#pragma once
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <time.h>
-#include <pthread.h>
-#include <sys/stat.h>
-#include <signal.h>
-#include <bzlib.h>
 #ifdef __WIN32__
-#define CURL_STATICLIB 1
 #define edition 'w'
 #else
 #define edition 'l'
 #endif
-#include <curl/curl.h>
 
-#include <SDL/SDL.h>
-#include <SDL/SDL_mixer.h>
-#include <SDL/SDL_image.h>
-#include "SFont.h"
+#define MAXVAL 100
 
 #define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
 
 #ifdef debug
-#define DBG(code) code 
+#define DBG(code) code
 #else
-#define DBG(code) 
+#define DBG(code)
 #endif
 #define DEBUG(...) DBG(__debug(__FUNCTION__, __LINE__, __VA_ARGS__))
-#define MUS(code) if (music_ok){ code }
-
-double ver;
 
 #define	FRAMES_PER_SEC	30
 #define SCREEN_WIDTH    374
@@ -86,30 +68,30 @@ double ver;
 #define HIGHSCORES_STARTHEIGHT 160
 
 #ifdef TRANSPARENT
-#undef TRANSPARENT /* windows has TRANSPARENT defined somewhere */
+#undef TRANSPARENT              /* windows has TRANSPARENT defined somewhere */
 #endif
 
 enum {
-	BLACK,
-	BROWN,
-	RED,
-	ORANGE,
-	YELLOW,
-	GREEN,
-	BLUE,
-	VIOLET,
-	GREY,
-	WHITE,
-  TRANSPARENT,
-	NUM_COLOURS
+    BLACK,
+    BROWN,
+    RED,
+    ORANGE,
+    YELLOW,
+    GREEN,
+    BLUE,
+    VIOLET,
+    GREY,
+    WHITE,
+    TRANSPARENT,
+    NUM_COLOURS
 };
-	
+
 typedef struct {
-	int alive;
-	int facing;
-	int x, y;
-	SDL_Surface *image;
-	int colour;
+    int alive;
+    int facing;
+    int x, y;
+    SDL_Surface *image;
+    int colour;
     int type;
 } object;
 
@@ -120,116 +102,79 @@ typedef struct {
 } castle;
 
 typedef struct {
-	int points;
-	char name[3];
+    int points;
+    char name[3];
 } score;
 
-SFont_Font* font[7];
-
-SDL_Surface *screen;
-SDL_Surface *icon;
-SDL_Surface *title_screen;
-SDL_Surface *shot_images[10];
-SDL_Surface *enemy_images[3][10][2];
-SDL_Surface *enemy_shot_images[2][2];
-SDL_Surface *castle_bits[5][4];
-#ifdef intro
-SDL_Surface *intro_frames[16];
-SDL_TimerID intro_timer;
-#endif
-
-object player;
-object shots[MAX_SHOTS];
-object enemy_shots[MAX_ENEMY_SHOTS];
-object enemies[MAX_ENEMIES];
-object explosions[MAX_EXPLOSIONS];//player, boss
-castle castles[3];
-object boss;
-
-int num_players;
-int requests_quit;
-int current_player; // 0 or 1
-int points_lookup[11];
-int high_score_data_is_real;
-pthread_mutex_t mutex;
-int music_ok;
-int flags; //video flags for fullscreen
-
-score high_scores[10];
-score player_scores[2];
-
-Uint32 colours[10];
-
-int fd;
 
 enum {
-	SHOT_WAV,
-	EXPLODE_WAV,
-  PAUSE_WAV,
-	UFO_WAV,
-	UFO_EXPLODE_WAV,
-  NUM_WAVES
+    SHOT_WAV,
+    EXPLODE_WAV,
+    PAUSE_WAV,
+    UFO_WAV,
+    UFO_EXPLODE_WAV,
+    NUM_WAVES
 };
 
 enum {
-  MENU_SONG,
-  DEAD_SONG,
-  LEVEL1_SONG,
-  LEVEL2_SONG,
-  LEVEL3_SONG,
-  INTRO_SONG,
-  NUM_SONGS
+    MENU_SONG,
+    DEAD_SONG,
+    LEVEL1_SONG,
+    LEVEL2_SONG,
+    LEVEL3_SONG,
+    INTRO_SONG,
+    NUM_SONGS
 };
 
 enum {
-  LEFT,
-  UP,
-  DOWN,
-  RIGHT
+    LEFT,
+    UP,
+    DOWN,
+    RIGHT
 };
 
-Mix_Chunk *sounds[NUM_WAVES];
-Mix_Music *songs[NUM_SONGS];
-void   setpixel(SDL_Surface *surface, int x, int y, Uint32 pixel);
-Uint32 getpixel(SDL_Surface *surface, int x, int y);
-void setfourpixels(object *castle, int x, int y);
+void setpixel(SDL_Surface * surface, int x, int y, Uint32 pixel);
+Uint32 getpixel(SDL_Surface * surface, int x, int y);
+void setfourpixels(object * castle, int x, int y);
 
-SDL_Surface *tint(SDL_Surface *sprite, Uint32 to);
+SDL_Surface *tint(SDL_Surface * sprite, Uint32 to);
 
 int can_shoot(int);
 int dead_shot(void);
 void player_hit(void);
 
+void open_resources(const char *file);
 void load_early_data(void);
 void load_early_song(void);
 void load_data(void);
-void castle_hit(object *castle, int x, int y, int down);
+void castle_hit(object * castle, int x, int y, int down);
 int rand_between(int low, int high);
 void wait(void);
 
-int pixel_collision(object *sprite1, object *sprite2, int bottom);
-int box_collision(object *sprite1, object *sprite2, int padding);
+int pixel_collision(object * sprite1, object * sprite2, int bottom);
+int box_collision(object * sprite1, object * sprite2, int padding);
 
 int find_enemy_who_can_shoot(void);
 int need_reverse_enemies(void);
 
 void draw_points(int disabled);
 void show_title_screen(void);
-void game(int,int);
+void game(int, int);
 void highscores();
 void vidmode();
-int open_resource(char *filename);
-char *get_resource(char *resourcename, int *filesize);
-SDL_Surface *load_bmp(char *filename);
-Mix_Chunk *load_sound(char *filename);
-Mix_Music *load_song(char *filename);
-SDL_Surface *transparent(SDL_Surface*);
-void mkcastle(castle*);
-int castle_collision(object*,castle*);
-void castle_block_hit(castle*,int);
-void draw_castle(castle*);
+int open_resource(const char *filename);
+char *get_resource(const char *resourcename, int *filesize);
+SDL_Surface *load_bmp(const char *filename);
+Mix_Chunk *load_sound(const char *filename);
+Mix_Music *load_song(const char *filename);
+SDL_Surface *transparent(SDL_Surface *);
+void mkcastle(castle *);
+int castle_collision(object *, castle *);
+void castle_block_hit(castle *, int);
+void draw_castle(castle *);
 void toggle_mute(void);
 void check_for_patch(int argc, char **argv);
 void ask_for_patch(void);
-char *apply_patch(const char *patch_path,const char *my_path);
-void __debug(const char*,int,const char *fmt,...) __attribute__((format(printf, 3, 4)));
+char *apply_patch(const char *patch_path, const char *my_path);
+void __debug(const char *, int, const char *fmt, ...)
+    __attribute__ ((format(printf, 3, 4)));
