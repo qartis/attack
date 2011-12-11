@@ -37,7 +37,7 @@ extern Mix_Music *songs[NUM_SONGS];
 extern object boss;
 extern int points_lookup[11];
 extern object player;
-extern object explosions[MAX_EXPLOSIONS];  //player, boss
+extern object explosions[MAX_EXPLOSIONS];   //player, boss
 extern object enemy_shots[MAX_ENEMY_SHOTS];
 extern int music_ok;
 extern SFont_Font *font[7];
@@ -93,9 +93,10 @@ SDL_Surface *transparent(SDL_Surface * surf)
     return surf;
 }
 
-void open_resources(const char *file){
+void open_resources(const char *file)
+{
     fd = open_resource(file);
-    if (fd < 0){
+    if (fd < 0) {
         DEBUG("fatal error");
         exit(EXIT_FAILURE);
     }
@@ -297,7 +298,7 @@ char *get_resource(const char *resourcename, int *filesize)
                 if (data) {
                     if ((temp = read(fd, data, data_size)) != data_size) {
                         DEBUG("could not read resource contents: %s, %d",
-                                resourcename, temp);
+                              resourcename, temp);
                         exit(EXIT_FAILURE);
                     }
                 }

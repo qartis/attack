@@ -45,7 +45,7 @@ enum patchouli_err patchouli_set_url(struct patchouli_t *p, const char *url)
 }
 
 enum patchouli_err patchouli_set_patch_file(struct patchouli_t *p,
-                                                 const char *file)
+                                            const char *file)
 {
     p->patch_file = strdup(file);
     return PATCHOULI_OK;
@@ -84,13 +84,13 @@ enum patchouli_err patchouli_request_patch(struct patchouli_t *p)
     long response;
     res = curl_easy_getinfo(p->easy, CURLINFO_RESPONSE_CODE, &response);
 
-    if (res != CURLE_OK){
+    if (res != CURLE_OK) {
         goto err;
     }
-    if (response == 304L){
+    if (response == 304L) {
         printf("empty patch\n");
         remove(p->patch_file);
-    } else if (response == 200L){
+    } else if (response == 200L) {
         printf("got patch");
     } else {
         printf("wtf strange response %ld\n", response);
@@ -210,7 +210,6 @@ char *apply_patch(const char *patch_path, const char *binary_path)
         remove(patch_path);
         return NULL;
     }
-
 
     /* Open patch file */
     if ((f = fopen(patch_path, "rb")) == NULL) {
@@ -391,7 +390,8 @@ bail:
     return NULL;
 }
 
-enum patchouli_err patchouli_process(int argc, char **argv, const char *patch_file)
+enum patchouli_err patchouli_process(int argc, char **argv,
+                                     const char *patch_file)
 {
     int retval;
     FILE *patch = fopen(patch_file, "rb");
@@ -401,7 +401,8 @@ enum patchouli_err patchouli_process(int argc, char **argv, const char *patch_fi
         if ((retval = rename(proper, new_name))) {
             goto err;
         }
-        char *argv2[] = { new_name, (char *)"-patchouli-steptwo", argv[0], proper, NULL };
+        char *argv2[] =
+            { new_name, (char *)"-patchouli-steptwo", argv[0], proper, NULL };
         execv(new_name, argv2);
         goto err;
     } else if (argc > 1 && 0 == strcmp(argv[1], "-patchouli-steptwo")) {
@@ -411,7 +412,8 @@ enum patchouli_err patchouli_process(int argc, char **argv, const char *patch_fi
         if ((retval = rename(binary_name, original_name))) {
             goto err;
         }
-        char *argv2[] = { original_name, (char*)"-patchouli-stepthree", argv[0], NULL };
+        char *argv2[] =
+            { original_name, (char *)"-patchouli-stepthree", argv[0], NULL };
         execv(original_name, argv2);
         goto err;
     } else if (argc > 1 && 0 == strcmp(argv[1], "-patchouli-stepthree")) {

@@ -53,7 +53,7 @@ extern "C" {
 // Font: this contains the suface with the font.
 //       The Surface must be loaded before calling this function
     SFont_Font *SFont_InitFont(SDL_Surface * Font);
-     
+    
 // Frees the font
 // Font: The font to free
 //       The font must be loaded before using this function.

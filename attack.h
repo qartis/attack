@@ -106,7 +106,6 @@ typedef struct {
     char name[3];
 } score;
 
-
 enum {
     SHOT_WAV,
     EXPLODE_WAV,

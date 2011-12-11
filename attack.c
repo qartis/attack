@@ -366,7 +366,8 @@ refresh:
     DBG(char verstring[32];
         sprintf(verstring, "%d", ver);
         SFont_Write(screen, font[1], 1, (screen->h - SFont_TextHeight(font[1])),
-                    verstring););
+                    verstring);
+        );
     draw_points(1);
     SDL_UpdateRect(screen, 0, 0, 0, 0);
     for (;;) {
@@ -786,8 +787,8 @@ void game(int enemy_move_rate, int padding)
             chomp_counter = 0;
             for (i = 0; i < MAX_ENEMIES; i++) {
                 enemies[i].image =
-                    enemy_images[enemies[i].type][enemies[i].
-                                                  colour][chomp_frame];
+                    enemy_images[enemies[i].
+                                 type][enemies[i].colour][chomp_frame];
             }
         } else {
             chomp_counter++;
@@ -1131,7 +1132,7 @@ int main(int argc, char *argv[])
 {
     ver =
 #include ".ver"
-    ;
+        ;
     srand(time(NULL));
     patchouli_process(argc, argv, ".patch");
     curl_global_init(CURL_GLOBAL_ALL);

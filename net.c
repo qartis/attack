@@ -16,7 +16,7 @@ extern score player_scores[2];
 extern SDL_Surface *screen;
 extern Uint32 colours[NUM_COLOURS];
 extern SFont_Font *font[7];
-extern int num_players; 
+extern int num_players;
 extern int requests_quit;
 
 size_t curl_got_highscore_data(void *buffer, size_t size, size_t nmemb,
