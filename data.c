@@ -14,11 +14,75 @@
 #include "sfont.h"
 #include "attack.h"
 
-#define SUFFIX "DATA"
-
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
+#include "data_obj/fred.h"
+#include "data_obj/title_screen.h"
+#include "data_obj/blam.h"
+#include "data_obj/icon.h"
+#include "data_obj/font_bluish.h"
+#include "data_obj/font_blue.h"
+#include "data_obj/font_yellow.h"
+#include "data_obj/font_white.h"
+#include "data_obj/font_red.h"
+#include "data_obj/font_green.h"
+#include "data_obj/font_grey.h"
+#include "data_obj/menu.h"
+#include "data_obj/shot.h"
+#include "data_obj/enemy_0_0.h"
+#include "data_obj/enemy_0_1.h"
+#include "data_obj/enemy_1_0.h"
+#include "data_obj/enemy_1_1.h"
+#include "data_obj/enemy_2_0.h"
+#include "data_obj/enemy_2_1.h"
+#include "data_obj/enemy_shot_0_0.h"
+#include "data_obj/enemy_shot_0_1.h"
+#include "data_obj/enemy_shot_1_0.h"
+#include "data_obj/enemy_shot_1_1.h"
+#include "data_obj/intro_0.h"
+#include "data_obj/intro_1.h"
+#include "data_obj/intro_2.h"
+#include "data_obj/intro_3.h"
+#include "data_obj/intro_4.h"
+#include "data_obj/intro_5.h"
+#include "data_obj/intro_6.h"
+#include "data_obj/intro_7.h"
+#include "data_obj/intro_8.h"
+#include "data_obj/intro_9.h"
+#include "data_obj/intro_10.h"
+#include "data_obj/intro_11.h"
+#include "data_obj/intro_12.h"
+#include "data_obj/intro_13.h"
+#include "data_obj/intro_14.h"
+#include "data_obj/intro_15.h"
+#include "data_obj/castle_top_left_0.h"
+#include "data_obj/castle_top_left_1.h"
+#include "data_obj/castle_top_left_2.h"
+#include "data_obj/castle_top_left_3.h"
+#include "data_obj/castle_bottom_left_0.h"
+#include "data_obj/castle_bottom_left_1.h"
+#include "data_obj/castle_bottom_left_2.h"
+#include "data_obj/castle_bottom_left_3.h"
+#include "data_obj/castle_top_right_0.h"
+#include "data_obj/castle_top_right_1.h"
+#include "data_obj/castle_top_right_2.h"
+#include "data_obj/castle_top_right_3.h"
+#include "data_obj/castle_bottom_right_0.h"
+#include "data_obj/castle_bottom_right_1.h"
+#include "data_obj/castle_bottom_right_2.h"
+#include "data_obj/castle_bottom_right_3.h"
+#include "data_obj/castle_solid_0.h"
+#include "data_obj/castle_solid_1.h"
+#include "data_obj/castle_solid_2.h"
+#include "data_obj/castle_solid_3.h"
+#include "data_obj/boss.h"
+#include "data_obj/pause.h"
+#include "data_obj/shot_wav.h"
+#include "data_obj/kaboom.h"
+#include "data_obj/ufo.h"
+#include "data_obj/ufo_explode.h"
+#include "data_obj/intro_ogg.h"
+#include "data_obj/death_xm.h"
+#include "data_obj/revisq_mod.h"
+#include "data_obj/player_bmp.h"
 
 extern SDL_Surface *screen;
 extern SDL_Surface *icon;
@@ -44,8 +108,6 @@ extern SFont_Font *font[7];
 extern object shots[MAX_SHOTS];
 
 extern Uint32 colours[NUM_COLOURS];
-extern pthread_mutex_t mutex;
-int fd;
 
 void __debug(const char *function, int lineno, const char *fmt, ...)
 {
@@ -84,6 +146,7 @@ SDL_Surface *tint(SDL_Surface * sprite, Uint32 to)
         }
     }
     SDL_UnlockSurface(new);
+    SDL_FreeSurface(sprite);
     return new;
 }
 
@@ -91,15 +154,6 @@ SDL_Surface *transparent(SDL_Surface * surf)
 {
     SDL_SetColorKey(surf, SDL_SRCCOLORKEY | SDL_RLEACCEL, colours[TRANSPARENT]);
     return surf;
-}
-
-void open_resources(const char *file)
-{
-    fd = open_resource(file);
-    if (fd < 0) {
-        DEBUG("fatal error");
-        exit(EXIT_FAILURE);
-    }
 }
 
 void load_early_data(void)
@@ -115,38 +169,30 @@ void load_early_data(void)
     colours[GREY] = SDL_MapRGB(screen->format, 0x80, 0x80, 0x80);
     colours[WHITE] = SDL_MapRGB(screen->format, 0xFE, 0xFF, 0xFF);
     colours[TRANSPARENT] = SDL_MapRGB(screen->format, 0xFF, 0x00, 0xFF);
-    title_screen = load_bmp("title_screen.png");
-    icon = transparent(load_bmp("icon.bmp"));
+    title_screen = load_bmp(title_screen_png, title_screen_png_len);
+    icon = transparent(load_bmp(icon_bmp, icon_bmp_len));
 
-    font[0] = SFont_InitFont(load_bmp("font-bluish.png"));
-    font[1] = SFont_InitFont(load_bmp("font-blue.png"));
-    font[2] = SFont_InitFont(load_bmp("font-yellow.png"));
-    font[3] = SFont_InitFont(load_bmp("font-red.png"));
-    font[4] = SFont_InitFont(load_bmp("font-white.png"));
-    font[5] = SFont_InitFont(load_bmp("font-green.png"));
-    font[6] = SFont_InitFont(load_bmp("font-grey.png"));
+    font[0] = SFont_InitFont(load_bmp(font_bluish_png, font_bluish_png_len));
+    font[1] = SFont_InitFont(load_bmp(font_blue_png, font_blue_png_len));
+    font[2] = SFont_InitFont(load_bmp(font_yellow_png, font_yellow_png_len));
+    font[3] = SFont_InitFont(load_bmp(font_red_png, font_red_png_len));
+    font[4] = SFont_InitFont(load_bmp(font_white_png, font_white_png_len));
+    font[5] = SFont_InitFont(load_bmp(font_green_png, font_green_png_len));
+    font[6] = SFont_InitFont(load_bmp(font_grey_png, font_grey_png_len));
 }
 
 void load_data()
 {
     int i, j;
 
-    sleep(1);
 
-    if (music_ok) {
-        songs[MENU_SONG] = load_song("menu.xm.bz2");
-        if (!Mix_PlayingMusic()) {
-            Mix_PlayMusic(songs[MENU_SONG], 0);
-        }
-    }
-
-    shot_images[0] = transparent(load_bmp("shot.bmp"));
-    enemy_images[0][0][0] = transparent(load_bmp("enemy_0_0.bmp"));
-    enemy_images[0][0][1] = transparent(load_bmp("enemy_0_1.bmp"));
-    enemy_images[1][0][0] = transparent(load_bmp("enemy_1_0.bmp"));
-    enemy_images[1][0][1] = transparent(load_bmp("enemy_1_1.bmp"));
-    enemy_images[2][0][0] = transparent(load_bmp("enemy_2_0.bmp"));
-    enemy_images[2][0][1] = transparent(load_bmp("enemy_2_1.bmp"));
+    shot_images[0] = transparent(load_bmp(shot_bmp, shot_bmp_len));
+    enemy_images[0][0][0] = transparent(load_bmp(enemy_0_0_bmp, enemy_0_0_bmp_len));
+    enemy_images[0][0][1] = transparent(load_bmp(enemy_0_1_bmp, enemy_0_1_bmp_len));
+    enemy_images[1][0][0] = transparent(load_bmp(enemy_1_0_bmp, enemy_1_0_bmp_len));
+    enemy_images[1][0][1] = transparent(load_bmp(enemy_1_1_bmp, enemy_1_1_bmp_len));
+    enemy_images[2][0][0] = transparent(load_bmp(enemy_2_0_bmp, enemy_2_0_bmp_len));
+    enemy_images[2][0][1] = transparent(load_bmp(enemy_2_1_bmp, enemy_2_1_bmp_len));
 
     for (i = 1; i < 10; i++)
         shot_images[i] = tint(shot_images[0], colours[i]);
@@ -161,10 +207,10 @@ void load_data()
         }
     }
 
-    enemy_shot_images[0][0] = transparent(load_bmp("enemy_shot_0_0.bmp"));
-    enemy_shot_images[0][1] = transparent(load_bmp("enemy_shot_0_1.bmp"));
-    enemy_shot_images[1][0] = transparent(load_bmp("enemy_shot_1_0.bmp"));
-    enemy_shot_images[1][1] = transparent(load_bmp("enemy_shot_1_1.bmp"));
+    enemy_shot_images[0][0] = transparent(load_bmp(enemy_shot_0_0_bmp, enemy_shot_0_0_bmp_len));
+    enemy_shot_images[0][1] = transparent(load_bmp(enemy_shot_0_1_bmp, enemy_shot_0_1_bmp_len));
+    enemy_shot_images[1][0] = transparent(load_bmp(enemy_shot_1_0_bmp, enemy_shot_1_0_bmp_len));
+    enemy_shot_images[1][1] = transparent(load_bmp(enemy_shot_1_1_bmp, enemy_shot_1_1_bmp_len));
 
     for (i = 0; i < MAX_ENEMY_SHOTS; i++)
         enemy_shots[i].image = enemy_shot_images[0][0];
@@ -172,41 +218,41 @@ void load_data()
     for (i = 1; i < MAX_SHOTS; i++)
         shots[i].image = shot_images[shots[i].colour];
 
-    explosions[0].image = transparent(load_bmp("blam.bmp"));
+    explosions[0].image = transparent(load_bmp(blam_bmp, blam_bmp_len));
 
     for (i = 1; i < MAX_EXPLOSIONS; i++)
         explosions[i].image = explosions[0].image;
 
-    intro_frames[0] = load_bmp("intro_0.png");
-    intro_frames[1] = load_bmp("intro_1.png");
-    intro_frames[2] = load_bmp("intro_2.png");
-    intro_frames[3] = load_bmp("intro_3.png");
-    intro_frames[4] = load_bmp("intro_4.png");
-    intro_frames[5] = load_bmp("intro_5.png");
-    intro_frames[6] = load_bmp("intro_6.png");
-    intro_frames[7] = load_bmp("intro_7.png");
-    intro_frames[8] = load_bmp("intro_8.png");
-    intro_frames[9] = load_bmp("intro_9.png");
-    intro_frames[10] = load_bmp("intro_10.png");
-    intro_frames[11] = load_bmp("intro_11.png");
-    intro_frames[12] = load_bmp("intro_12.png");
-    intro_frames[13] = load_bmp("intro_13.png");
-    intro_frames[14] = load_bmp("intro_14.png");
-    intro_frames[15] = load_bmp("intro_15.png");
+    intro_frames[0] = load_bmp(intro_0_png, intro_0_png_len);
+    intro_frames[1] = load_bmp(intro_1_png, intro_1_png_len);
+    intro_frames[2] = load_bmp(intro_2_png, intro_2_png_len);
+    intro_frames[3] = load_bmp(intro_3_png, intro_3_png_len);
+    intro_frames[4] = load_bmp(intro_4_png, intro_4_png_len);
+    intro_frames[5] = load_bmp(intro_5_png, intro_5_png_len);
+    intro_frames[6] = load_bmp(intro_6_png, intro_6_png_len);
+    intro_frames[7] = load_bmp(intro_7_png, intro_7_png_len);
+    intro_frames[8] = load_bmp(intro_8_png, intro_8_png_len);
+    intro_frames[9] = load_bmp(intro_9_png, intro_9_png_len);
+    intro_frames[10] = load_bmp(intro_10_png, intro_10_png_len);
+    intro_frames[11] = load_bmp(intro_11_png, intro_11_png_len);
+    intro_frames[12] = load_bmp(intro_12_png, intro_12_png_len);
+    intro_frames[13] = load_bmp(intro_13_png, intro_13_png_len);
+    intro_frames[14] = load_bmp(intro_14_png, intro_14_png_len);
+    intro_frames[15] = load_bmp(intro_15_png, intro_15_png_len);
 
 #define LOAD(i,text) \
-  castle_bits[i][0] = transparent(load_bmp("castle_" text "_0.bmp")); \
-  castle_bits[i][1] = transparent(load_bmp("castle_" text "_1.bmp")); \
-  castle_bits[i][2] = transparent(load_bmp("castle_" text "_2.bmp")); \
-  castle_bits[i][3] = transparent(load_bmp("castle_" text "_3.bmp"));
+  castle_bits[i][0] = transparent(load_bmp(castle_ ## text ## _0_bmp, castle_ ## text ## _0_bmp_len)); \
+  castle_bits[i][1] = transparent(load_bmp(castle_ ## text ## _1_bmp, castle_ ## text ## _1_bmp_len)); \
+  castle_bits[i][2] = transparent(load_bmp(castle_ ## text ## _2_bmp, castle_ ## text ## _2_bmp_len)); \
+  castle_bits[i][3] = transparent(load_bmp(castle_ ## text ## _3_bmp, castle_ ## text ## _3_bmp_len));
 
-    LOAD(0, "top_left");
-    LOAD(1, "top_right");
-    LOAD(2, "solid");
-    LOAD(3, "bottom_left");
-    LOAD(4, "bottom_right");
+    LOAD(0, top_left);
+    LOAD(1, top_right);
+    LOAD(2, solid);
+    LOAD(3, bottom_left);
+    LOAD(4, bottom_right);
 
-    boss.image = transparent(load_bmp("boss.bmp"));
+    boss.image = transparent(load_bmp(boss_bmp, boss_bmp_len));
 
     points_lookup[0] = 1000;    // black
     points_lookup[1] = 750;     // brown
@@ -220,167 +266,51 @@ void load_data()
     points_lookup[9] = 50;      // white
     points_lookup[10] = 5000;   // boss
     if (music_ok) {
-        sounds[PAUSE_WAV] = load_sound("pause.ogg");
-        sounds[SHOT_WAV] = load_sound("shot.wav");
-        sounds[EXPLODE_WAV] = load_sound("kaboom.ogg");
-        sounds[UFO_WAV] = load_sound("ufo.wav");
-        sounds[UFO_EXPLODE_WAV] = load_sound("ufo_explode.ogg");
-        songs[DEAD_SONG] = load_song("fred.ogg");
-        songs[INTRO_SONG] = load_song("intro.ogg");
+        sounds[PAUSE_WAV] = load_sound(pause_ogg, pause_ogg_len);
+        sounds[SHOT_WAV] = load_sound(shot_wav, shot_wav_len);
+        sounds[EXPLODE_WAV] = load_sound(kaboom_ogg, kaboom_ogg_len);
+        sounds[UFO_WAV] = load_sound(ufo_wav, ufo_wav_len);
+        sounds[UFO_EXPLODE_WAV] = load_sound(ufo_explode_ogg, ufo_explode_ogg_len);
+        songs[DEAD_SONG] = load_song(fred_ogg, fred_ogg_len);
+        songs[INTRO_SONG] = load_song(intro_ogg, intro_ogg_len);
     }
-    songs[LEVEL3_SONG] = load_song("death.xm.bz2");
-    songs[LEVEL1_SONG] = load_song("revisq.mod.bz2");
-    songs[LEVEL2_SONG] = load_song("death.xm.bz2");
-    player.image = transparent(load_bmp("player.bmp"));
-}
-
-int open_resource(const char *filename)
-{
-    int suffix_len = strlen(SUFFIX) + 1;
-    char buffer[suffix_len];
-    int fd = open(filename, O_RDONLY | O_BINARY);
-    if (fd < 0) {
-        DEBUG("Error opening myself for reading: %s", strerror(errno));
-        return -1;
-    }
-    lseek(fd, -suffix_len, SEEK_END);
-    buffer[suffix_len - 1] = '\0';
-    read(fd, buffer, suffix_len);
-    if (0 != strncmp(buffer, SUFFIX, suffix_len)) {
-        close(fd);
-        DEBUG("fatal error loading datafiles: invalid magic string %s", buffer);
-        return -1;
-    }
-    return fd;
-}
-
-char *get_resource(const char *resourcename, int *filesize)
-{
-    uint32_t num_files;
-    uint32_t temp;
-    uint32_t i;
-    uint32_t cur;
-    uint32_t data_size = 0;
-    char *filename;
-    char *data = NULL;
-
-    pthread_mutex_lock(&mutex);
-    lseek(fd, -strlen(SUFFIX) - 1, SEEK_END);
-    lseek(fd, -(sizeof(uint32_t)), SEEK_CUR);
-    read(fd, &num_files, sizeof(uint32_t));
-    if (0 == num_files) {
-        DEBUG("fatal error: 0 resources");
-        exit(EXIT_FAILURE);
-    }
-    lseek(fd, -(sizeof(uint32_t)), SEEK_CUR);
-    i = num_files - 1;
-    filename = NULL;
-    do {
-        lseek(fd, -(sizeof(uint32_t)), SEEK_CUR);
-        read(fd, &cur, sizeof(uint32_t));
-        lseek(fd, -(sizeof(uint32_t)), SEEK_CUR);
-        if (i % 2) {
-            data_size = cur;
-        } else {
-            off_t a = cur;
-            lseek(fd, -a, SEEK_CUR);
-            if (cur > 4096) {
-                DEBUG("error, cur=%u", cur);
-                exit(EXIT_FAILURE);
-            }
-            filename = realloc(filename, cur + 1);
-            memset(filename, 0, cur + 1);
-            read(fd, filename, cur);
-            if (!strcmp(resourcename, filename)) {
-                *filesize = (int)data_size;
-                lseek(fd, sizeof(uint32_t), SEEK_CUR);
-                data = malloc(data_size);
-                if (data) {
-                    if ((temp = read(fd, data, data_size)) != data_size) {
-                        DEBUG("could not read resource contents: %s, %d",
-                              resourcename, temp);
-                        exit(EXIT_FAILURE);
-                    }
-                }
-                break;
-            }
+    songs[LEVEL3_SONG] = load_song(death_xm, death_xm_len);
+    songs[LEVEL1_SONG] = load_song(revisq_mod, revisq_mod_len);
+    songs[LEVEL2_SONG] = load_song(death_xm, death_xm_len);
+    player.image = transparent(load_bmp(player_bmp, player_bmp_len));
+    if (music_ok) {
+        songs[MENU_SONG] = load_song(menu_xm, menu_xm_len);
+        if (!Mix_PlayingMusic()) {
+            Mix_PlayMusic(songs[MENU_SONG], 0);
         }
-        off_t foo = cur;
-        lseek(fd, -foo, SEEK_CUR);
-    } while (i--);
-    pthread_mutex_unlock(&mutex);
-    if (!data) {
-        DEBUG("fatal error: garbage resource contents looking for %s (%d): %s",
-              resourcename, i, filename);
-        exit(EXIT_FAILURE);
     }
-    free(filename);
-    filename = NULL;
-
-    return data;
 }
 
-Mix_Chunk *load_sound(const char *filename)
+
+Mix_Chunk *load_sound(const unsigned char *data, unsigned int len)
 {
-    int filesize = 0;
-    char *buffer = get_resource(filename, &filesize);
-
-    SDL_RWops *rw = SDL_RWFromMem(buffer, filesize);
+    SDL_RWops *rw = SDL_RWFromMem(data, len);
     Mix_Chunk *sound = Mix_LoadWAV_RW(rw, 1);
-
-    free(buffer);
-    buffer = NULL;
 
     return sound;
 }
 
-Mix_Music *load_song(const char *filename)
+Mix_Music *load_song(const unsigned char *data, unsigned int len)
 {
-    int filesize = 0;
-    SDL_RWops *rw;
-    char *buffer = get_resource(filename, &filesize);
-    char *buffer2 = NULL;
-    if (strcmp(strrchr(filename, '.'), ".bz2") == 0) {
-        unsigned int len = 2048 * 1024;
-        buffer2 = malloc(len);  /* bigger than the biggest resource file */
-        int retval =
-            BZ2_bzBuffToBuffDecompress(buffer2, &len, buffer, filesize, 0, 0);
-        if (BZ_OK != retval) {
-            DEBUG("error decompressing bz2 data: %d", retval);
-            exit(EXIT_FAILURE);
-        }
-        rw = SDL_RWFromMem(buffer2, len);
-    } else {
-        rw = SDL_RWFromMem(buffer, filesize);
-    }
+    SDL_RWops *rw = SDL_RWFromMem(data, len);
     Mix_Music *song = Mix_LoadMUS_RW(rw);
-    if (!song)
-        DEBUG("Mix_LoadMUS_RW error for file %s: %s", filename, Mix_GetError());
-//  if (buffer2){free(buffer2);buffer2=NULL;} these cause weird issues: songs not playing, libvorbis freezing etc
-//  if (buffer){free(buffer);buffer=NULL;}
+
     return song;
 }
 
-SDL_Surface *load_bmp(const char *filename)
+SDL_Surface *load_bmp(const unsigned char *data, unsigned int len)
 {
-    int filesize = 0;
-    char *buffer = get_resource(filename, &filesize);
-
-    SDL_RWops *rw = SDL_RWFromMem(buffer, filesize);
+    SDL_RWops *rw = SDL_RWFromMem(data, len);
     SDL_Surface *temp = IMG_Load_RW(rw, 1);
 
-    free(buffer);
-    buffer = NULL;
-    SDL_Surface *image;
-    pthread_mutex_lock(&mutex);
-    image = SDL_DisplayFormat(temp);
-    pthread_mutex_unlock(&mutex);
+    SDL_Surface *image = SDL_DisplayFormat(temp);
 
     SDL_FreeSurface(temp);
 
-    if (image == NULL) {
-        DEBUG("unable to load %s: %s", filename, SDL_GetError());
-        exit(EXIT_FAILURE);
-    }
     return image;
 }

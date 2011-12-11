@@ -1160,7 +1160,6 @@ int main(int argc, char *argv[])
 
     SDL_ShowCursor(SDL_DISABLE);
 
-    open_resources(argv[0]);
     load_early_data();
 
     pthread_t data_load_thread;

@@ -67,9 +67,7 @@
 #define HIGHSCORES_WIDTH 100
 #define HIGHSCORES_STARTHEIGHT 160
 
-#ifdef TRANSPARENT
-#undef TRANSPARENT              /* windows has TRANSPARENT defined somewhere */
-#endif
+#undef TRANSPARENT /* windows has TRANSPARENT defined somewhere */
 
 enum {
     BLACK,
@@ -142,9 +140,7 @@ int can_shoot(int);
 int dead_shot(void);
 void player_hit(void);
 
-void open_resources(const char *file);
 void load_early_data(void);
-void load_early_song(void);
 void load_data(void);
 void castle_hit(object * castle, int x, int y, int down);
 int rand_between(int low, int high);
@@ -161,19 +157,14 @@ void show_title_screen(void);
 void game(int, int);
 void highscores();
 void vidmode();
-int open_resource(const char *filename);
-char *get_resource(const char *resourcename, int *filesize);
-SDL_Surface *load_bmp(const char *filename);
-Mix_Chunk *load_sound(const char *filename);
-Mix_Music *load_song(const char *filename);
+SDL_Surface *load_bmp(const unsigned char *data, unsigned int len);
+Mix_Chunk *load_sound(const unsigned char *data, unsigned int len);
+Mix_Music *load_song(const unsigned char *data, unsigned int len);
 SDL_Surface *transparent(SDL_Surface *);
 void mkcastle(castle *);
 int castle_collision(object *, castle *);
 void castle_block_hit(castle *, int);
 void draw_castle(castle *);
 void toggle_mute(void);
-void check_for_patch(int argc, char **argv);
-void ask_for_patch(void);
-char *apply_patch(const char *patch_path, const char *my_path);
 void __debug(const char *, int, const char *fmt, ...)
     __attribute__ ((format(printf, 3, 4)));
