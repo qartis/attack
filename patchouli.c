@@ -1,16 +1,13 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
+#include <fcntl.h>
+#include <bzlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <bzlib.h>
 #include <unistd.h>
-#include <limits.h>
-#include <stdint.h>
 #include <errno.h>
-#include <libgen.h>
+#include <stdint.h>
 #include <curl/curl.h>
 
 #include "patchouli.h"
@@ -74,7 +71,6 @@ enum patchouli_err patchouli_request_patch(struct patchouli_t *p)
     curl_easy_setopt(p->easy, CURLOPT_WRITEDATA, patch_file);
     curl_easy_setopt(p->easy, CURLOPT_CONNECTTIMEOUT, 10L);
     curl_easy_setopt(p->easy, CURLOPT_NOPROGRESS, 1L);
-    //curl_easy_setopt(p->easy, CURLOPT_VERBOSE, 1L);
     CURLcode res = curl_easy_perform(p->easy);
 
     if (res != CURLE_OK) {
