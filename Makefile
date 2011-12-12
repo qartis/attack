@@ -11,7 +11,7 @@ WARNINGS=-Wall -Wextra -Wcast-align -Wcast-qual -Wno-cast-qual \
          -Wunused-parameter -Wunused-value -Wunused-variable -Wwrite-strings
 
 FLAGS=-g
-CFLAGS = $(WARNINGS) -Ddebug -Dintro
+CFLAGS=$(FLAGS) $(WARNINGS) -Ddebug -Dintro
 LDFLAGS=$(FLAGS) -lSDL -lSDL_mixer -lSDL_image -lcurl -lbz2
 OBJS=attack.o net.o data.o patchouli.o sfont.o
 TARGET=attack
