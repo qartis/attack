@@ -287,25 +287,25 @@ void load_data()
 }
 
 
-Mix_Chunk *load_sound(const unsigned char *data, unsigned int len)
+Mix_Chunk *load_sound(const void *data, unsigned int len)
 {
-    SDL_RWops *rw = SDL_RWFromMem(data, len);
+    SDL_RWops *rw = SDL_RWFromConstMem(data, len);
     Mix_Chunk *sound = Mix_LoadWAV_RW(rw, 1);
 
     return sound;
 }
 
-Mix_Music *load_song(const unsigned char *data, unsigned int len)
+Mix_Music *load_song(const void *data, unsigned int len)
 {
-    SDL_RWops *rw = SDL_RWFromMem(data, len);
+    SDL_RWops *rw = SDL_RWFromConstMem(data, len);
     Mix_Music *song = Mix_LoadMUS_RW(rw);
 
     return song;
 }
 
-SDL_Surface *load_bmp(const unsigned char *data, unsigned int len)
+SDL_Surface *load_bmp(const void *data, unsigned int len)
 {
-    SDL_RWops *rw = SDL_RWFromMem(data, len);
+    SDL_RWops *rw = SDL_RWFromConstMem(data, len);
     SDL_Surface *temp = IMG_Load_RW(rw, 1);
 
     SDL_Surface *image = SDL_DisplayFormat(temp);

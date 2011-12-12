@@ -1153,7 +1153,7 @@ int main(int argc, char *argv[])
     if ((rc = pthread_mutex_init(&mutex, NULL))) {
         DEBUG("error creating mutex (%d): %s", rc, strerror(rc));
     }
-    flags = SDL_HWSURFACE;
+    flags = SDL_SWSURFACE;
     if (argc > 1 && !strncmp(argv[1], "-fs", strlen("-fs")))
         flags ^= SDL_FULLSCREEN;
     vidmode();
