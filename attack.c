@@ -1162,6 +1162,7 @@ int main(int argc, char *argv[])
 
     load_early_data();
 
+    /*
     pthread_t data_load_thread;
     if ((rc =
          pthread_create(&data_load_thread, NULL, (void *(*)(void *))load_data,
@@ -1169,6 +1170,8 @@ int main(int argc, char *argv[])
         DEBUG("error creating data loader thread: %s", strerror(rc));
         load_data();
     }
+    */
+    load_data();
     if (music_ok) {
         Mix_Volume(UFO_WAV, MIX_MAX_VOLUME / 10);
         Mix_Volume(EXPLODE_WAV, MIX_MAX_VOLUME / 4);
@@ -1214,7 +1217,7 @@ int main(int argc, char *argv[])
         for (current_player = 0;
              current_player < num_players && !requests_quit; ++current_player) {
             player_go(current_player);
-            pthread_join(data_load_thread, NULL);
+            //pthread_join(data_load_thread, NULL);
             if (current_player == 0) {
                 if (music_ok) {
                     int id = LEVEL1_SONG + rand() % (LEVEL3_SONG - LEVEL1_SONG);
