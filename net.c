@@ -68,14 +68,13 @@ void highscores()
     curl_easy_setopt(easy, CURLOPT_URL, "http://qartis.com/attack/scores.php");
     curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, curl_got_highscore_data);
     char *data = malloc(MAXVAL);
-    snprintf(data, MAXVAL, "n=%d&n1=%c%c%c&s1=%d&n2=%c%c%c&s2=%d&v=%d&e=%c",
-             num_players, player_scores[0].name[0], player_scores[0].name[1],
-             player_scores[0].name[2], player_scores[0].points,
-             player_scores[1].name[0], player_scores[1].name[1],
-             player_scores[1].name[2], player_scores[1].points, ver, edition);
+    snprintf(data, MAXVAL, "n=%d&n1=%.3s&s1=%d&n2=%.3s&s2=%d&v=%d&e=%c",
+             num_players, player_scores[0].name, player_scores[0].points,
+             player_scores[1].name, player_scores[1].points, ver, edition);
     curl_easy_setopt(easy, CURLOPT_POSTFIELDS, data);
     curl_easy_setopt(easy, CURLOPT_TIMEOUT, 10);
     curl_easy_setopt(easy, CURLOPT_NOPROGRESS, 1L);
+    curl_easy_setopt(easy, CURLOPT_VERBOSE, 1L);
     curl_easy_perform(easy);
 refresh:
     SDL_FillRect(screen, NULL, colours[0]);
@@ -85,17 +84,16 @@ refresh:
                      SFont_TextWidth(font[0], "HIGH SCORES")) / 2, 135,
                     "HIGH SCORES");
         for (i = 0; i < 10; i++) {
-            char buf[2][32];
-            sprintf(buf[0], "%6d", high_scores[i].points);
-            sprintf(buf[1], "%c%c%c", high_scores[i].name[0],
-                    high_scores[i].name[1], high_scores[i].name[2]);
+            char buf[32];
+            sprintf(buf, "%6d", high_scores[i].points);
             SFont_Write(screen, font[5],
-                        (SCREEN_WIDTH) / 2 - SFont_TextWidth(font[0], buf[0]),
+                        (SCREEN_WIDTH) / 2 - SFont_TextWidth(font[0], buf),
                         HIGHSCORES_STARTHEIGHT +
-                        i * (SFont_TextHeight(font[0]) + 5), buf[0]);
+                        i * (SFont_TextHeight(font[0]) + 5), buf);
+            sprintf(buf, "%.3s", high_scores[i].name);
             SFont_Write(screen, font[5], (SCREEN_WIDTH) / 2 + 10,
                         HIGHSCORES_STARTHEIGHT +
-                        i * (SFont_TextHeight(font[0]) + 5), buf[1]);
+                        i * (SFont_TextHeight(font[0]) + 5), buf);
         }
         if (stat(".patch", &stat_buf)) {
             SFont_Write(screen, font[2],
