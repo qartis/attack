@@ -17,7 +17,6 @@ OBJS=attack.o net.o data.o patchouli.o sfont.o
 TARGET=attack
 
 all: $(TARGET)
-	./pack attack
 
 $(OBJS) : $(wildcard *.h) Makefile .ver
 
