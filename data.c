@@ -146,7 +146,6 @@ SDL_Surface *tint(SDL_Surface * sprite, Uint32 to)
         }
     }
     SDL_UnlockSurface(new);
-    SDL_FreeSurface(sprite);
     return new;
 }
 
